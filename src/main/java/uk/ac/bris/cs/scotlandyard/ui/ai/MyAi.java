@@ -1,5 +1,6 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
+import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
@@ -46,7 +47,7 @@ public class MyAi implements Ai {
 		}
 		Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
-		var moves = gameState.getAvailableMoves().asList();
+		var moves = gameState.getAvailableMoves().asList(); // mrX moves (currently because only ai on mrX).
 		int source = 0;
 		for (Move move : gameState.getAvailableMoves()) {
 			if (move.commencedBy().isMrX()) {
@@ -131,6 +132,27 @@ public class MyAi implements Ai {
 				System.out.println(node + " -> " + neighbor + " [Value: " + value + "]");
 			}
 		}
+	}
+
+	public static ArrayList<Move> duplicatePruning(ArrayList<Move> moves) {
+		ArrayList<Move> prunedList = new ArrayList<>();
+		ArrayList<Integer> destList = new ArrayList<>();
+		int destination = 0;
+		for (Move move : moves) {
+			destination = move.accept(new Move.Visitor<Integer>() {
+				@Override
+				public Integer visit(Move.SingleMove move) {
+					return move.destination;
+				}
+
+				@Override
+				public Integer visit(Move.DoubleMove move) {
+					return move.destination2;
+				}
+			});
+
+		}
+		return null;
 	}
 }
 
