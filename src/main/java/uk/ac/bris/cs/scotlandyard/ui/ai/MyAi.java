@@ -1,6 +1,5 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
@@ -10,26 +9,14 @@ import uk.ac.bris.cs.scotlandyard.model.Ai;
 import uk.ac.bris.cs.scotlandyard.model.Board;
 import uk.ac.bris.cs.scotlandyard.model.Move;
 
-import java.sql.Array;
 import java.util.*;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.graph.*;
-import com.google.common.graph.ImmutableGraph;
 import com.google.common.collect.ImmutableSet;
-import com.sun.source.tree.Tree;
-import io.atlassian.fugue.Pair;
-import uk.ac.bris.cs.gamekit.graph.Edge;
-import uk.ac.bris.cs.gamekit.graph.Node;
-import uk.ac.bris.cs.scotlandyard.model.Ai;
 import uk.ac.bris.cs.scotlandyard.model.Player;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
-import uk.ac.bris.cs.scotlandyard.model.Board;
-import uk.ac.bris.cs.scotlandyard.model.Move;
 import uk.ac.bris.cs.scotlandyard.model.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
@@ -38,7 +25,6 @@ public class MyAi implements Ai {
 	@Nonnull @Override public String name() { return "MiniMaxAi"; }
 
 	@Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
-//		Board.GameState gameState = (Board.GameState) board;
 		HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
 		ArrayList<Ticket> tempTicketList = new ArrayList<>(Arrays.asList(Ticket.TAXI, Ticket.BUS, Ticket.UNDERGROUND, Ticket.DOUBLE, Ticket.SECRET));
 		MyGameStateFactory factory = new MyGameStateFactory();
@@ -67,8 +53,11 @@ public class MyAi implements Ai {
 				source = move.source();
 			}
 		}
-		System.out.println(moves);
-		miniMax(gameState, moves, source, MrX.MRX);
+		MutableValueGraph<Board.GameState, Move> graph = ValueGraphBuilder.directed().allowsSelfLoops(false).build();
+		graph.addNode(gameState);
+		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
+		miniMax(gameState, moves, source, MrX.MRX, graph, playerRemainingList);
+		printGraph(graph);
 		return moves.get(0);
 
 	}
@@ -106,47 +95,42 @@ public class MyAi implements Ai {
 				}
 			}
 		}
-//		System.out.println(distances);
 		return distances;
 	}
 
-//	public Move miniMax(Board.GameState gameState, List<Move> moves, int source) {
-//		MyGameStateFactory factory = new MyGameStateFactory();
-//		HashMap<ScotlandYard.Ticket, Integer> temp = new HashMap<>();
-//		Optional<Board.TicketBoard> tempTicketBoard = gameState.getPlayerTickets(Detective.RED);
-//		temp.put(ScotlandYard.Ticket.SECRET, tempTicketBoard.get().getCount(ScotlandYard.Ticket.SECRET));
-//		ImmutableMap<ScotlandYard.Ticket, Integer> ticketTemp = ImmutableMap.of();
-//
-//		//Player test = new Player(Detective.RED,, 0);
-//		Map<Integer, Double> dijkstraMap = dijkstra(gameState, source);
-//		//gameState.advance(mo);
-//		return moves.get(new Random().nextInt(moves.size()));
-//	}
 
-
-	public Move miniMax(Board.GameState gameState, List<Move> moves, int source, Piece mover) {
-		MutableValueGraph<Board.GameState, Move> graph = ValueGraphBuilder.directed().allowsSelfLoops(false).build();
-		graph.addNode(gameState);
+	public Move miniMax(Board.GameState gameState, List<Move> moves, int source, Piece mover, MutableValueGraph<Board.GameState, Move> graph, ArrayList<Piece> playerRemainingList) {
 		int i = 0;
+		ArrayList<Piece> tempRemainingList = new ArrayList<>(playerRemainingList);
 
 		Board.GameState newState;
 		// initiate mrX moves into graph.
-		for (Move move : moves) {
-			if (move.commencedBy() == mover) {
-				newState = gameState.advance(move); // new state with move used
-				graph.addNode(newState); // add this to the graph
-				graph.putEdgeValue(gameState, newState, move); // connect to the root node
-				System.out.println("added node!" + i);
-				i++;
+		if (tempRemainingList.size() > 1) { // final go is length 1
+			tempRemainingList.remove(mover); // remove mover from playerRemainingList
+			for (Move move : moves) {
+				if (move.commencedBy() == mover) {
+					newState = gameState.advance(move); // new state with move used
+					graph.addNode(newState); // add this to the graph
+					graph.putEdgeValue(gameState, newState, move); // connect to the root node
+//					System.out.println("added node!" + i);
+					if (tempRemainingList.size() > 0) {
+						miniMax(newState, newState.getAvailableMoves().asList(), source, tempRemainingList.get(0), graph, tempRemainingList);
+					}
+				}
 			}
-//			if (!(move.commencedBy() == gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1))) {
-//				break;
-//			}
-//			miniMax(newState, moves, source, newState.getPlayers().asList().get(i));
 		}
-		System.out.println(moves.size());
-		System.out.println(graph);
+//		System.out.println(moves.size());
+		//printGraph(graph);
 		return null;
+	}
+	public static <N, V> void printGraph(MutableValueGraph<N, V> graph) {
+		System.out.println("Graph:");
+		for (N node : graph.nodes()) {
+			for (N neighbor : graph.successors(node)) {
+				V value = graph.edgeValueOrDefault(node, neighbor, null);
+				System.out.println(node + " -> " + neighbor + " [Value: " + value + "]");
+			}
+		}
 	}
 }
 
