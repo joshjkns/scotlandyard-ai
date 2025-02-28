@@ -64,8 +64,8 @@ public class MyAi implements Ai {
 		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
 		HashMap<Double, Board.GameState> finalMap = new HashMap<>();
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
-		printGraph(graph);
-		double bestVal = miniMax(gameState, graph, true, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
+		// printGraph(graph);
+		double bestVal = miniMax(gameState, graph, true, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap, 0);
 		Board.GameState chosenState = finalMap.get(bestVal);
 		Move chosenMove = graph.edgeValue(gameState, chosenState).get();
 		return chosenMove;
@@ -130,10 +130,9 @@ public class MyAi implements Ai {
 		}
 	}
 
-	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, boolean isMrX, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, HashMap<Double, Board.GameState> finalMap) {
+	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, boolean isMrX, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, HashMap<Double, Board.GameState> finalMap, double res) {
 		double bestVal = 0;
 		double value = 0;
-		double res = 0;
 
 		ArrayList<Piece> tempRemainingList = new ArrayList<>(playerRemainingList);
 		if (!tempRemainingList.isEmpty()) {
@@ -143,7 +142,6 @@ public class MyAi implements Ai {
 			}
 			if (mover.isDetective()) {
 				res += dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
-				System.out.println("PLAYER: " + mover + "RES: " + res);
 			}
 			if (graph.successors(state).isEmpty()) { // leaf
 				return res;
@@ -152,7 +150,7 @@ public class MyAi implements Ai {
 			if (mover.isMrX()) {
 				bestVal = Double.NEGATIVE_INFINITY;
 				for (Board.GameState child : graph.successors(state)) {
-					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap);
+					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap, res);
 					bestVal = Math.max(bestVal, value);
 					finalMap.put(value, child);
 					alpha = Math.max(alpha, bestVal);
@@ -166,7 +164,7 @@ public class MyAi implements Ai {
 			else {
 				bestVal = Double.POSITIVE_INFINITY;
 				for (Board.GameState child : graph.successors(state)) {
-					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap);
+					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap, res);
 					bestVal = Math.min(bestVal, value);
 					beta = Math.min(beta, bestVal);
 					if (beta <= alpha) {
@@ -202,6 +200,7 @@ public class MyAi implements Ai {
 		ArrayList<Move> prunedList = new ArrayList<>();
 		ArrayList<Integer> destList = new ArrayList<>();
 		int destination = 0;
+		Collections.shuffle(moves); // so he doesnt use the secret x2 always first.
 		for (Move move : moves) {
 			destination = move.accept(new Move.Visitor<Integer>() {
 				@Override
