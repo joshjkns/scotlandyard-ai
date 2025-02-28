@@ -47,7 +47,7 @@ public class MyAi implements Ai {
 		}
 		Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
-		var moves = gameState.getAvailableMoves().asList(); // mrX moves (currently because only ai on mrX).
+		ArrayList<Move> moves = new ArrayList<>(gameState.getAvailableMoves().asList()); // mrX moves (currently because only ai on mrX).
 		int source = 0;
 		for (Move move : gameState.getAvailableMoves()) {
 			if (move.commencedBy().isMrX()) {
@@ -57,7 +57,8 @@ public class MyAi implements Ai {
 		MutableValueGraph<Board.GameState, Move> graph = ValueGraphBuilder.directed().allowsSelfLoops(false).build();
 		graph.addNode(gameState);
 		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
-		miniMax(gameState, moves, source, MrX.MRX, graph, playerRemainingList);
+		ArrayList<Move> newMoves = duplicatePruning(moves);
+		miniMax(gameState, newMoves, source, MrX.MRX, graph, playerRemainingList);
 		printGraph(graph);
 		return moves.get(0);
 
@@ -106,7 +107,7 @@ public class MyAi implements Ai {
 
 		Board.GameState newState;
 		// initiate mrX moves into graph.
-		if (tempRemainingList.size() > 1) { // final go is length 1
+		if (tempRemainingList.size() > 0) { // final go is length 1
 			tempRemainingList.remove(mover); // remove mover from playerRemainingList
 			for (Move move : moves) {
 				if (move.commencedBy() == mover) {
@@ -115,7 +116,8 @@ public class MyAi implements Ai {
 					graph.putEdgeValue(gameState, newState, move); // connect to the root node
 //					System.out.println("added node!" + i);
 					if (tempRemainingList.size() > 0) {
-						miniMax(newState, newState.getAvailableMoves().asList(), source, tempRemainingList.get(0), graph, tempRemainingList);
+						ArrayList<Move> newMoves = new ArrayList<Move>(newState.getAvailableMoves().asList());
+						miniMax(newState, duplicatePruning(newMoves), source, tempRemainingList.get(0), graph, tempRemainingList);
 					}
 				}
 			}
@@ -150,9 +152,12 @@ public class MyAi implements Ai {
 					return move.destination2;
 				}
 			});
-
+			if (!(destList.contains(destination))) { // if the destlist doesnt contain the destination
+				prunedList.add(move); // add to the pruned list (new moves list)
+				destList.add(destination);
+			}
 		}
-		return null;
+		return prunedList;
 	}
 }
 
