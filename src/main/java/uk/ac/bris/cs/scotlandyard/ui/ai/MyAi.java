@@ -47,7 +47,7 @@ public class MyAi implements Ai {
 		}
 		Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
-		ArrayList<Move> moves = new ArrayList<>(gameState.getAvailableMoves().asList()); // mrX moves (currently because only ai on mrX).
+		ArrayList<Move> moves = new ArrayList<>(gameState.getAvailableMoves().asList()); // mrX moves (currently because only AI on mrX).
 		int source = 0;
 		for (Move move : gameState.getAvailableMoves()) {
 			if (move.commencedBy().isMrX()) {
@@ -152,7 +152,7 @@ public class MyAi implements Ai {
 					return move.destination2;
 				}
 			});
-			if (!(destList.contains(destination))) { // if the destlist doesnt contain the destination
+			if (!(destList.contains(destination))) { // if the destination list doesn't contain the destination
 				prunedList.add(move); // add to the pruned list (new moves list)
 				destList.add(destination);
 			}
