@@ -141,7 +141,7 @@ public class MyAi implements Ai {
 			if (tempRemainingList.size() != 1) {
 				tempRemainingList.remove(mover);
 			}
-			f (mover.isDetective()) {
+			if (mover.isDetective()) {
 				res += dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
 				System.out.println("PLAYER: " + mover + "RES: " + res);
 			}
