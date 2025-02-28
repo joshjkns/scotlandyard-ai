@@ -1,11 +1,14 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
-
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
 import io.atlassian.fugue.Pair;
+import uk.ac.bris.cs.gamekit.graph.Node;
 import uk.ac.bris.cs.scotlandyard.model.Ai;
 import uk.ac.bris.cs.scotlandyard.model.Board;
 import uk.ac.bris.cs.scotlandyard.model.Move;
@@ -58,13 +61,16 @@ public class MyAi implements Ai {
 		graph.addNode(gameState);
 		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
 		ArrayList<Move> newMoves = duplicatePruning(moves);
-		miniMax(gameState, newMoves, source, MrX.MRX, graph, playerRemainingList);
+		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
+		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
 		printGraph(graph);
+		double bestVal = miniMax(gameState, graph, true, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList);
+		System.out.println(bestVal);
 		return moves.get(0);
 
 	}
 
-	public Map<Integer, Double> dijkstra(Board.GameState board, int source){
+	public static Map<Integer, Double> dijkstra(Board.GameState board, int source){
 		ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> valueGraph = board.getSetup().graph;
 		Map<Integer, Double> distances = new HashMap<>();
 		Map<Integer, Boolean> visited = new HashMap<>();
@@ -101,38 +107,87 @@ public class MyAi implements Ai {
 	}
 
 
-	public Move miniMax(Board.GameState gameState, List<Move> moves, int source, Piece mover, MutableValueGraph<Board.GameState, Move> graph, ArrayList<Piece> playerRemainingList) {
-		int i = 0;
+	public void miniMaxGraph(Board.GameState gameState, List<Move> moves, Map<Integer, Double> dijkstraResult, Piece mover, MutableValueGraph<Board.GameState, Move> graph, ArrayList<Piece> playerRemainingList) {
 		ArrayList<Piece> tempRemainingList = new ArrayList<>(playerRemainingList);
-
-		Board.GameState newState;
+		Board.GameState newState = null;
 		// initiate mrX moves into graph.
-		if (tempRemainingList.size() > 0) { // final go is length 1
+		if (!tempRemainingList.isEmpty()) { // final go is length 1
 			tempRemainingList.remove(mover); // remove mover from playerRemainingList
 			for (Move move : moves) {
 				if (move.commencedBy() == mover) {
 					newState = gameState.advance(move); // new state with move used
 					graph.addNode(newState); // add this to the graph
-					graph.putEdgeValue(gameState, newState, move); // connect to the root node
-//					System.out.println("added node!" + i);
-					if (tempRemainingList.size() > 0) {
+					graph.putEdgeValue(gameState, newState, move);
+					// connect to the root node
+					if (!tempRemainingList.isEmpty()) {
 						ArrayList<Move> newMoves = new ArrayList<Move>(newState.getAvailableMoves().asList());
-						miniMax(newState, duplicatePruning(newMoves), source, tempRemainingList.get(0), graph, tempRemainingList);
+						miniMaxGraph(newState, duplicatePruning(newMoves), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
 					}
 				}
 			}
 		}
-//		System.out.println(moves.size());
-		//printGraph(graph);
-		return null;
 	}
-	public static <N, V> void printGraph(MutableValueGraph<N, V> graph) {
-		System.out.println("Graph:");
-		for (N node : graph.nodes()) {
-			for (N neighbor : graph.successors(node)) {
-				V value = graph.edgeValueOrDefault(node, neighbor, null);
-				System.out.println(node + " -> " + neighbor + " [Value: " + value + "]");
+
+	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, boolean isMrX, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList) {
+		double bestVal = 0;
+		double value = 0;
+		ArrayList<Piece> tempRemainingList = new ArrayList<>(playerRemainingList);
+		if (!tempRemainingList.isEmpty()) {
+			Piece mover = tempRemainingList.get(0);
+			if (tempRemainingList.size() != 1) {
+				tempRemainingList.remove(mover);
 			}
+			if (graph.successors(state).isEmpty()) { // leaf
+				Detective moved = (Detective) mover;
+				double res = dijkstraResult.get(state.getDetectiveLocation(moved).get());
+				return res;
+			}
+	
+			if (mover.isMrX()) {
+				bestVal = Double.NEGATIVE_INFINITY;
+				for (Board.GameState child : graph.successors(state)) {
+					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList);
+					bestVal = Math.max(bestVal, value);
+					alpha = Math.max(alpha, bestVal);
+					if (beta <= alpha) {
+						break;
+					}
+				}
+				return bestVal;
+			}
+	
+			else {
+				bestVal = Double.POSITIVE_INFINITY;
+				for (Board.GameState child : graph.successors(state)) {
+					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList);
+					bestVal = Math.min(bestVal, value);
+					alpha = Math.min(alpha, bestVal);
+					if (beta <= alpha) {
+						break;
+					}
+				}
+				if (tempRemainingList.size() == 1) {
+					tempRemainingList.remove(mover);
+				}
+				return bestVal;
+			}
+		}
+		return bestVal;
+	}
+
+	public static <N, V> void printGraph(MutableValueGraph<N, V> graph) {
+		try (PrintWriter writer = new PrintWriter(new FileWriter("graph.txt"))) {
+			writer.println("Graph:");
+			for (N node : graph.nodes()) {
+				for (N neighbor : graph.successors(node)) {
+					V value = graph.edgeValueOrDefault(node, neighbor, null);
+					writer.println(node + " -> " + neighbor + " [Value: " + value + "]");
+				}
+			}
+			System.out.println("Graph data written to graph.txt");
+		} catch (IOException e) {
+			System.err.println("Error writing to file: " + e.getMessage());
+			e.printStackTrace();
 		}
 	}
 
@@ -159,5 +214,6 @@ public class MyAi implements Ai {
 		}
 		return prunedList;
 	}
+
 }
 
