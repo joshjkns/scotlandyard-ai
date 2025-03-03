@@ -133,6 +133,7 @@ public class MyAi implements Ai {
 	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, boolean isMrX, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, HashMap<Double, Board.GameState> finalMap, double res) {
 		double bestVal = 0;
 		double value = 0;
+		double intermediate = 0;
 
 		ArrayList<Piece> tempRemainingList = new ArrayList<>(playerRemainingList);
 		if (!tempRemainingList.isEmpty()) {
@@ -141,9 +142,14 @@ public class MyAi implements Ai {
 				tempRemainingList.remove(mover);
 			}
 			if (mover.isDetective()) {
-				res += dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
+				intermediate += dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
+				if (intermediate < 3) {
+					intermediate *= 2;
+				}
+				res += intermediate;
 			}
 			if (graph.successors(state).isEmpty()) { // leaf
+				System.out.println(res);
 				return res;
 			}
 
