@@ -6,6 +6,8 @@ import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
+import org.glassfish.grizzly.Transport;
+
 import com.google.common.collect.ImmutableList;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.gamekit.graph.Node;
@@ -68,6 +70,7 @@ public class MyAi implements Ai {
 		double bestVal = miniMax(gameState, graph, true, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap, 0);
 		Board.GameState chosenState = finalMap.get(bestVal);
 		Move chosenMove = graph.edgeValue(gameState, chosenState).get();
+		System.out.println(dijkstra(gameState, 157));
 		return chosenMove;
 
 	}
@@ -86,11 +89,14 @@ public class MyAi implements Ai {
 		visited.put(source, true);
 
 		while (visited.containsValue(false)) {
-			for (Map.Entry<Integer, Double> entry : distances.entrySet()) {
+			for (Map.Entry<Integer, Double> entry : distances.entrySet()) { // entry.getKey() is every node
 				if (visited.get(entry.getKey())){ // visited = true
 					Set<Integer> adjNodes = valueGraph.adjacentNodes(entry.getKey());
 					for (int nextNode : adjNodes){
 						if (!visited.get(nextNode)){
+							if (valueGraph.edgeValue(entry.getKey(), nextNode).get().stream().anyMatch(t -> t.requiredTicket() == Ticket.SECRET)) {
+								break;
+							}
 							double newDistance = entry.getValue() + 1;
 							if (newDistance < distances.get(nextNode)) {
 								distances.put(nextNode, newDistance);
@@ -142,14 +148,16 @@ public class MyAi implements Ai {
 				tempRemainingList.remove(mover);
 			}
 			if (mover.isDetective()) {
-				intermediate += dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
+				intermediate = dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
 				if (intermediate < 3) {
-					intermediate *= 2;
+					intermediate *= 5;
 				}
 				res += intermediate;
 			}
 			if (graph.successors(state).isEmpty()) { // leaf
-				System.out.println(res);
+				// for (Board.GameState oldState : graph.predecessors(state)) {
+				// 	System.out.println("MOVE: " + graph.edgeValue(oldState,state) + "RES: " + res);
+				// }
 				return res;
 			}
 
@@ -157,6 +165,7 @@ public class MyAi implements Ai {
 				bestVal = Double.NEGATIVE_INFINITY;
 				for (Board.GameState child : graph.successors(state)) {
 					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap, res);
+					System.out.println("MOVE: " + graph.edgeValue(state,child) + "RES: " + value);
 					bestVal = Math.max(bestVal, value);
 					finalMap.put(value, child);
 					alpha = Math.max(alpha, bestVal);
