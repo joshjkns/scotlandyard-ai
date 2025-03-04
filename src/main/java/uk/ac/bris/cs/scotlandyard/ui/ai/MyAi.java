@@ -64,10 +64,11 @@ public class MyAi implements Ai {
 		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
 		HashMap<Double, Board.GameState> finalMap = new HashMap<>();
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
-		// printGraph(graph);
-		double bestVal = miniMax(gameState, graph, true, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap, 0);
+		//printGraph(graph);
+		double bestVal = miniMax(gameState, graph, true, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
 		Board.GameState chosenState = finalMap.get(bestVal);
 		Move chosenMove = graph.edgeValue(gameState, chosenState).get();
+		//System.out.println(dijkstra(gameState, 105));
 		return chosenMove;
 
 	}
@@ -130,7 +131,7 @@ public class MyAi implements Ai {
 		}
 	}
 
-	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, boolean isMrX, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, HashMap<Double, Board.GameState> finalMap, double res) {
+	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, boolean isMrX, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, HashMap<Double, Board.GameState> finalMap) {
 		double bestVal = 0;
 		double value = 0;
 		double intermediate = 0;
@@ -142,45 +143,59 @@ public class MyAi implements Ai {
 				tempRemainingList.remove(mover);
 			}
 			if (mover.isDetective()) {
-				intermediate += dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
-				if (intermediate < 3) {
-					intermediate *= 2;
-				}
-				res += intermediate;
+				intermediate = dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
+				//System.out.println("1");//Math.pow(Math.E, 0.05 * intermediate);
 			}
 			if (graph.successors(state).isEmpty()) { // leaf
-				System.out.println(res);
-				return res;
+				//System.out.println("MOVE: "+ state.getDetectiveLocation((Detective) mover).get() + ",," +  state.getMrXTravelLog().get(0).location() + "      VALUE: " + dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get()));
+				return dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
 			}
 
 			if (mover.isMrX()) {
 				bestVal = Double.NEGATIVE_INFINITY;
 				for (Board.GameState child : graph.successors(state)) {
-					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap, res);
+					int destination = graph.edgeValue(state,child).get().accept(new Move.Visitor<Integer>() {
+						@Override
+						public Integer visit(Move.SingleMove move) {
+							return move.destination;
+						}
+
+						@Override
+						public Integer visit(Move.DoubleMove move) {
+							return move.destination2;
+						}
+					});
+					Map<Integer, Double> dijkstraResultInput = dijkstra(child, destination);
+					value = miniMax(child, graph, false, alpha, beta, dijkstraResultInput, tempRemainingList, finalMap);
 					bestVal = Math.max(bestVal, value);
 					finalMap.put(value, child);
-					alpha = Math.max(alpha, bestVal);
-					if (beta <= alpha) {
-						break;
-					}
+//					alpha = Math.max(alpha, bestVal);
+//					if (beta <= alpha) {
+//						break;
+//					}
 				}
-				return bestVal;
+//				for (Map.Entry entry : finalMap.entrySet()) {
+//					Move posMove = graph.edgeValue(state, (Board.GameState) entry.getValue()).get();
+//					System.out.println("VALUE: " + entry.getKey() + "MOVE: " + posMove);
+//				}
+//				System.out.println(finalMap);
+//				return bestVal;
 			}
 	
 			else {
 				bestVal = Double.POSITIVE_INFINITY;
 				for (Board.GameState child : graph.successors(state)) {
-					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap, res);
+					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap);
 					bestVal = Math.min(bestVal, value);
-					beta = Math.min(beta, bestVal);
-					if (beta <= alpha) {
-						break;
-					}
+//					beta = Math.min(beta, bestVal);
+//					if (beta <= alpha) {
+//						break;
+//					}
 				}
 				if (tempRemainingList.size() == 1) {
 					tempRemainingList.remove(mover);
 				}
-				return bestVal;
+				return bestVal + intermediate;
 			}
 		}
 		return bestVal;
@@ -207,6 +222,7 @@ public class MyAi implements Ai {
 		ArrayList<Integer> destList = new ArrayList<>();
 		int destination = 0;
 		Collections.shuffle(moves); // so he doesnt use the secret x2 always first.
+//		System.out.println(moves);
 		for (Move move : moves) {
 			destination = move.accept(new Move.Visitor<Integer>() {
 				@Override
