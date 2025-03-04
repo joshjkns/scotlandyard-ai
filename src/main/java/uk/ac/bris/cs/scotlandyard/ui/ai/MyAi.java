@@ -6,6 +6,8 @@ import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
+import org.glassfish.grizzly.Transport;
+
 import com.google.common.collect.ImmutableList;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.gamekit.graph.Node;
@@ -87,11 +89,14 @@ public class MyAi implements Ai {
 		visited.put(source, true);
 
 		while (visited.containsValue(false)) {
-			for (Map.Entry<Integer, Double> entry : distances.entrySet()) {
+			for (Map.Entry<Integer, Double> entry : distances.entrySet()) { // entry.getKey() is every node
 				if (visited.get(entry.getKey())){ // visited = true
 					Set<Integer> adjNodes = valueGraph.adjacentNodes(entry.getKey());
 					for (int nextNode : adjNodes){
 						if (!visited.get(nextNode)){
+							if (valueGraph.edgeValue(entry.getKey(), nextNode).get().stream().anyMatch(t -> t.requiredTicket() == Ticket.SECRET)) {
+								break;
+							}
 							double newDistance = entry.getValue() + 1;
 							if (newDistance < distances.get(nextNode)) {
 								distances.put(nextNode, newDistance);
