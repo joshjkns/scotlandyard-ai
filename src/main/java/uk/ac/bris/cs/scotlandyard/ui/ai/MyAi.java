@@ -28,7 +28,7 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
 public class MyAi implements Ai {
 
-	@Nonnull @Override public String name() { return "MiniMaxAi"; }
+	@Nonnull @Override public String name() { return "[MRX] MiniMax"; }
 
 	@Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
 		HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
@@ -60,17 +60,18 @@ public class MyAi implements Ai {
 			}
 		}
 		MutableValueGraph<Board.GameState, Move> graph = ValueGraphBuilder.directed().allowsSelfLoops(false).build();
-		graph.addNode(gameState);
+		graph.addNode(gameState); // add root node
+
 		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
 		ArrayList<Move> newMoves = duplicatePruning(moves);
 		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
 		HashMap<Double, Board.GameState> finalMap = new HashMap<>();
+
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
-		//printGraph(graph);
-		double bestVal = miniMax(gameState, graph, true, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
+		double bestVal = miniMax(gameState, graph, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
+
 		Board.GameState chosenState = finalMap.get(bestVal);
 		Move chosenMove = graph.edgeValue(gameState, chosenState).get();
-		//System.out.println(dijkstra(gameState, 105));
 		return chosenMove;
 
 	}
@@ -136,7 +137,7 @@ public class MyAi implements Ai {
 		}
 	}
 
-	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, boolean isMrX, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, HashMap<Double, Board.GameState> finalMap) {
+	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, HashMap<Double, Board.GameState> finalMap) {
 		double bestVal = 0;
 		double value = 0;
 		double intermediate = 0;
@@ -149,10 +150,8 @@ public class MyAi implements Ai {
 			}
 			if (mover.isDetective()) {
 				intermediate = dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
-				//System.out.println("1");//Math.pow(Math.E, 0.05 * intermediate);
 			}
 			if (graph.successors(state).isEmpty()) { // leaf
-				//System.out.println("MOVE: "+ state.getDetectiveLocation((Detective) mover).get() + ",," +  state.getMrXTravelLog().get(0).location() + "      VALUE: " + dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get()));
 				return dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
 			}
 
@@ -171,7 +170,7 @@ public class MyAi implements Ai {
 						}
 					});
 					Map<Integer, Double> dijkstraResultInput = dijkstra(child, destination);
-					value = miniMax(child, graph, false, alpha, beta, dijkstraResultInput, tempRemainingList, finalMap);
+					value = miniMax(child, graph, alpha, beta, dijkstraResultInput, tempRemainingList, finalMap);
 					bestVal = Math.max(bestVal, value);
 					finalMap.put(value, child);
 //					alpha = Math.max(alpha, bestVal);
@@ -179,18 +178,13 @@ public class MyAi implements Ai {
 //						break;
 //					}
 				}
-//				for (Map.Entry entry : finalMap.entrySet()) {
-//					Move posMove = graph.edgeValue(state, (Board.GameState) entry.getValue()).get();
-//					System.out.println("VALUE: " + entry.getKey() + "MOVE: " + posMove);
-//				}
-//				System.out.println(finalMap);
-//				return bestVal;
+				return bestVal;
 			}
 	
 			else {
 				bestVal = Double.POSITIVE_INFINITY;
 				for (Board.GameState child : graph.successors(state)) {
-					value = miniMax(child, graph, false, alpha, beta, dijkstraResult, tempRemainingList, finalMap);
+					value = miniMax(child, graph, alpha, beta, dijkstraResult, tempRemainingList, finalMap);
 					bestVal = Math.min(bestVal, value);
 //					beta = Math.min(beta, bestVal);
 //					if (beta <= alpha) {
@@ -206,46 +200,39 @@ public class MyAi implements Ai {
 		return bestVal;
 	}
 
-	public static <N, V> void printGraph(MutableValueGraph<N, V> graph) {
-		try (PrintWriter writer = new PrintWriter(new FileWriter("graph.txt"))) {
-			writer.println("Graph:");
-			for (N node : graph.nodes()) {
-				for (N neighbor : graph.successors(node)) {
-					V value = graph.edgeValueOrDefault(node, neighbor, null);
-					writer.println(node + " -> " + neighbor + " [Value: " + value + "]");
-				}
-			}
-			System.out.println("Graph data written to graph.txt");
-		} catch (IOException e) {
-			System.err.println("Error writing to file: " + e.getMessage());
-			e.printStackTrace();
-		}
-	}
-
 	public static ArrayList<Move> duplicatePruning(ArrayList<Move> moves) {
-		ArrayList<Move> prunedList = new ArrayList<>();
-		ArrayList<Integer> destList = new ArrayList<>();
-		int destination = 0;
-		Collections.shuffle(moves); // so he doesnt use the secret x2 always first.
-//		System.out.println(moves);
+        Map.Entry<Integer,Boolean> entry;
+		Map<Integer,Move> singleMoveMap = new HashMap<>();
+		Map<Integer,Move> doubleMoveMap = new HashMap<>();
+		Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
 		for (Move move : moves) {
-			destination = move.accept(new Move.Visitor<Integer>() {
+			entry = move.accept(new Move.Visitor<Map.Entry<Integer,Boolean>>() {
 				@Override
-				public Integer visit(Move.SingleMove move) {
-					return move.destination;
+				public Map.Entry<Integer,Boolean> visit(Move.SingleMove move) {
+					Map.Entry<Integer,Boolean> tempEntry = new AbstractMap.SimpleEntry<>(move.destination, true);
+					return tempEntry;
 				}
 
 				@Override
-				public Integer visit(Move.DoubleMove move) {
-					return move.destination2;
+				public Map.Entry<Integer,Boolean> visit(Move.DoubleMove move) {
+					Map.Entry<Integer,Boolean> tempEntry = new AbstractMap.SimpleEntry<>(move.destination2, false);
+					return tempEntry;
 				}
 			});
-			if (!(destList.contains(destination))) { // if the destination list doesn't contain the destination
-				prunedList.add(move); // add to the pruned list (new moves list)
-				destList.add(destination);
+			int destination = entry.getKey();
+			boolean singleMove = entry.getValue();
+			if (singleMove) {
+				singleMoveMap.put(destination,move);
+			} else {
+				doubleMoveMap.put(destination,move);
 			}
 		}
-		return prunedList;
+		for (int tempDestination : doubleMoveMap.keySet()) {
+			if (!(singleMoveMap.containsKey(tempDestination))){
+				singleMoveMap.put(tempDestination, doubleMoveMap.get(tempDestination));
+			}
+		}
+        return new ArrayList<>(singleMoveMap.values());
 	}
 
 }
