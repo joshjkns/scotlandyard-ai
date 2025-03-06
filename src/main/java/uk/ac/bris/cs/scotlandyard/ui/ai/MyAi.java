@@ -57,7 +57,7 @@ public class MyAi implements Ai {
 		int lastLocation = location;
 		System.out.println(location);
 		for (LogEntry entry : board.getMrXTravelLog()) {
-			if (entry.location().isPresent()) {g
+			if (entry.location().isPresent()) {
 				lastLocation = entry.location().get();
 			}
 		}
