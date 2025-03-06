@@ -6,6 +6,7 @@ import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.glassfish.grizzly.Transport;
 
 import com.google.common.collect.ImmutableList;
@@ -36,21 +37,30 @@ public class MyAi implements Ai {
 		MyGameStateFactory factory = new MyGameStateFactory();
 		ArrayList<Player> detectivesList = new ArrayList<>();
 		Player mrX = null;
+		int location = 0;
 		for (Piece piece : board.getPlayers()) {
 			for (Ticket ticket : tempTicketList) {
 				tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
 			}
 			if (piece.isMrX()){
-				int location = board.getAvailableMoves().asList().get(0).source();
+				location = board.getAvailableMoves().asList().get(0).source();
 				mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
 			} else {
 				Detective newDetective = (Detective) piece;
-				Optional<Integer> location = board.getDetectiveLocation(newDetective);
-				Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location.get());
+				Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
+				Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), detectiveLocation.get());
 				detectivesList.add(newPlayer);
 			}
 		}
 		Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
+
+		int lastLocation = location;
+		System.out.println(location);
+		for (LogEntry entry : board.getMrXTravelLog()) {
+			if (entry.location().isPresent()) {
+				lastLocation = entry.location().get();
+			}
+		}
 
 		ArrayList<Move> moves = new ArrayList<>(gameState.getAvailableMoves().asList()); // mrX moves (currently because only AI on mrX).
 		int source = 0;
@@ -65,14 +75,39 @@ public class MyAi implements Ai {
 		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
 		ArrayList<Move> newMoves = duplicatePruning(moves);
 		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
-		HashMap<Double, Board.GameState> finalMap = new HashMap<>();
+		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
 
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
 		double bestVal = miniMax(gameState, graph, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
 
-		Board.GameState chosenState = finalMap.get(bestVal);
-		Move chosenMove = graph.edgeValue(gameState, chosenState).get();
-		return chosenMove;
+//		Board.GameState chosenState = finalMap.get(bestVal);
+		Move chosenMove = null;
+		double maxDistance = -1;
+		Map<Integer, Double> dijkstraLastLocation = dijkstra(gameState, lastLocation);
+		for (Board.GameState tempState : finalMap.get(bestVal)) {
+			Move tempMove = graph.edgeValue(gameState, tempState).get();
+			if (maxDistance == -1) {
+				chosenMove = tempMove;
+			}
+			int destination = tempMove.accept(new Move.Visitor<>() {
+				@Override
+				public Integer visit(Move.SingleMove move) {
+					return move.destination;
+				}
+
+				@Override
+				public Integer visit(Move.DoubleMove move) {
+					return move.destination2;
+				}
+			});
+			double distance = dijkstraLastLocation.get(destination);
+			if (distance > maxDistance) {
+				maxDistance = distance;
+				chosenMove = tempMove;
+			}
+		}
+        assert chosenMove != null;
+        return chosenMove;
 
 	}
 
@@ -137,7 +172,7 @@ public class MyAi implements Ai {
 		}
 	}
 
-	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, HashMap<Double, Board.GameState> finalMap) {
+	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, ArrayListMultimap<Double, Board.GameState> finalMap) {
 		double bestVal = 0;
 		double value = 0;
 		double intermediate = 0;
@@ -179,6 +214,7 @@ public class MyAi implements Ai {
 //					}
 				}
 				return bestVal;
+
 			}
 	
 			else {
