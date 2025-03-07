@@ -76,9 +76,14 @@ public class MyAi implements Ai {
 		ArrayList<Move> newMoves = duplicatePruning(moves);
 		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
 		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
-
+		System.out.println("before graph");
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
+		System.out.println("after graph");
+
+		System.out.println("before minimax");
+
 		double bestVal = miniMax(gameState, graph, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
+		System.out.println("after minimax");
 
 //		Board.GameState chosenState = finalMap.get(bestVal);
 		Move chosenMove = null;
@@ -151,13 +156,31 @@ public class MyAi implements Ai {
 	}
 
 
-	public void miniMaxGraph(Board.GameState gameState, List<Move> moves, Map<Integer, Double> dijkstraResult, Piece mover, MutableValueGraph<Board.GameState, Move> graph, ArrayList<Piece> playerRemainingList) {
+	public void miniMaxGraph(Board.GameState gameState, ArrayList<Move> moves, Map<Integer, Double> dijkstraResult, Piece mover, MutableValueGraph<Board.GameState, Move> graph, ArrayList<Piece> playerRemainingList) {
 		ArrayList<Piece> tempRemainingList = new ArrayList<>(playerRemainingList);
 		Board.GameState newState = null;
+		ArrayList<Move> filteredMoves = new ArrayList<>();
+		double totalDistances = 0;
 		// initiate mrX moves into graph.
 		if (!tempRemainingList.isEmpty()) { // final go is length 1
-			tempRemainingList.remove(mover); // remove mover from playerRemainingList
-			for (Move move : moves) {
+			tempRemainingList.remove(mover);// remove mover from playerRemainingList
+			if (mover.isMrX()){
+				for (Piece detectivePiece : tempRemainingList) {
+					if (detectivePiece.isMrX()) {
+						break;
+					}
+					if (detectivePiece.isDetective()) {
+						totalDistances += dijkstraResult.get(gameState.getDetectiveLocation((Detective) detectivePiece).get());
+					}
+				}
+				if (totalDistances <= gameState.getPlayers().size() * 3) {
+					filteredMoves = doubleOrSingleFilter(moves, false);
+				}
+				if (!(totalDistances <= gameState.getPlayers().size() * 3) || filteredMoves.isEmpty()){
+					filteredMoves = doubleOrSingleFilter(moves, true);
+				}
+			}
+			for (Move move : filteredMoves) {
 				if (move.commencedBy() == mover) {
 					newState = gameState.advance(move); // new state with move used
 					graph.addNode(newState); // add this to the graph
@@ -236,6 +259,30 @@ public class MyAi implements Ai {
 		return bestVal;
 	}
 
+	public static ArrayList<Move> doubleOrSingleFilter(ArrayList<Move> moves, boolean singleMoves) {
+		ArrayList<Move> returnMoves = new ArrayList<>();
+		for (Move move : moves) {
+			int isSingleMove = move.accept(new Move.Visitor<Integer>() {
+				@Override
+				public Integer visit(Move.SingleMove move) {
+					return 1;
+				}
+
+				@Override
+				public Integer visit(Move.DoubleMove move) {
+					return 0;
+				}
+			});
+			if (singleMoves && (isSingleMove == 1)) {
+				returnMoves.add(move);
+			}
+			if (!singleMoves && (isSingleMove == 0)) {
+				returnMoves.add(move);
+			}
+		}
+		return returnMoves;
+	}
+
 	public static ArrayList<Move> duplicatePruning(ArrayList<Move> moves) {
         Map.Entry<Integer,Boolean> entry;
 		Map<Integer,Move> singleMoveMap = new HashMap<>();
@@ -259,7 +306,8 @@ public class MyAi implements Ai {
 			boolean singleMove = entry.getValue();
 			if (singleMove) {
 				singleMoveMap.put(destination,move);
-			} else {
+			}
+			if (!singleMove && (destination != move.source())){
 				doubleMoveMap.put(destination,move);
 			}
 		}
