@@ -165,7 +165,7 @@ public class MyDetectiveAI implements Ai {
                 moveMap.put(dijkstraResult.get(destination),individualMove);
             }
         }
-        System.out.println(moveMap);
+        //System.out.println(moveMap);
         //Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
         // getting the max value of the keys and using it to get the best move.
         return moveMap.get(moveMap.keySet().stream().min(Double::compareTo).get());

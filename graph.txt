@@ -1,3 +1,4 @@
 Graph:
-uk.ac.bris.cs.scotlandyard.model.a@53e5b3c4 -> uk.ac.bris.cs.scotlandyard.model.a@38ec08d2 [Value: TAXI(MRX@5, 15)]
-uk.ac.bris.cs.scotlandyard.model.a@53e5b3c4 -> uk.ac.bris.cs.scotlandyard.model.a@854b1fb [Value: TAXI(MRX@5, 16)]
+uk.ac.bris.cs.scotlandyard.model.a@531acd4c -> uk.ac.bris.cs.scotlandyard.model.a@4f09076f [Value: TAXI(MRX@146, 145)]
+uk.ac.bris.cs.scotlandyard.model.a@531acd4c -> uk.ac.bris.cs.scotlandyard.model.a@1d7f7f84 [Value: TAXI(MRX@146, 163)]
+uk.ac.bris.cs.scotlandyard.model.a@531acd4c -> uk.ac.bris.cs.scotlandyard.model.a@280247c9 [Value: TAXI(MRX@146, 147)]

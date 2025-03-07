@@ -8,7 +8,9 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ArrayListMultimap;
 import org.glassfish.grizzly.Transport;
-
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import com.google.common.collect.ImmutableList;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.gamekit.graph.Node;
@@ -29,7 +31,7 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
 public class MyAi implements Ai {
 
-	@Nonnull @Override public String name() { return "[MRX] MiniMax"; }
+	@Nonnull @Override public String name() { return "[MRX] 6 layer boss"; }
 
 	@Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
 		HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
@@ -55,7 +57,6 @@ public class MyAi implements Ai {
 		Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
 		int lastLocation = location;
-		System.out.println(location);
 		for (LogEntry entry : board.getMrXTravelLog()) {
 			if (entry.location().isPresent()) {
 				lastLocation = entry.location().get();
@@ -76,15 +77,9 @@ public class MyAi implements Ai {
 		ArrayList<Move> newMoves = duplicatePruning(moves);
 		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
 		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
-		System.out.println("before graph");
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
-		System.out.println("after graph");
-
-		System.out.println("before minimax");
 
 		double bestVal = miniMax(gameState, graph, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
-		System.out.println("after minimax");
-
 //		Board.GameState chosenState = finalMap.get(bestVal);
 		Move chosenMove = null;
 		double maxDistance = -1;
@@ -111,6 +106,7 @@ public class MyAi implements Ai {
 				chosenMove = tempMove;
 			}
 		}
+		printGraphToFile(graph,"graph.txt");
         assert chosenMove != null;
         return chosenMove;
 
@@ -173,13 +169,18 @@ public class MyAi implements Ai {
 						totalDistances += dijkstraResult.get(gameState.getDetectiveLocation((Detective) detectivePiece).get());
 					}
 				}
-				if (totalDistances <= gameState.getPlayers().size() * 3) {
+				if (totalDistances <= gameState.getPlayers().size() * 2) {
 					filteredMoves = doubleOrSingleFilter(moves, false);
+					System.out.println(filteredMoves);
 				}
-				if (!(totalDistances <= gameState.getPlayers().size() * 3) || filteredMoves.isEmpty()){
+				if ((totalDistances > gameState.getPlayers().size() * 2) || filteredMoves.isEmpty()){
 					filteredMoves = doubleOrSingleFilter(moves, true);
 				}
 			}
+			if (mover.isDetective()) {
+				filteredMoves = moves;
+			}
+			//eliminateMoves(moves,false)
 			for (Move move : filteredMoves) {
 				if (move.commencedBy() == mover) {
 					newState = gameState.advance(move); // new state with move used
@@ -292,14 +293,12 @@ public class MyAi implements Ai {
 			entry = move.accept(new Move.Visitor<Map.Entry<Integer,Boolean>>() {
 				@Override
 				public Map.Entry<Integer,Boolean> visit(Move.SingleMove move) {
-					Map.Entry<Integer,Boolean> tempEntry = new AbstractMap.SimpleEntry<>(move.destination, true);
-					return tempEntry;
+                    return new AbstractMap.SimpleEntry<>(move.destination, true);
 				}
 
 				@Override
 				public Map.Entry<Integer,Boolean> visit(Move.DoubleMove move) {
-					Map.Entry<Integer,Boolean> tempEntry = new AbstractMap.SimpleEntry<>(move.destination2, false);
-					return tempEntry;
+                    return new AbstractMap.SimpleEntry<>(move.destination2, false);
 				}
 			});
 			int destination = entry.getKey();
@@ -307,6 +306,7 @@ public class MyAi implements Ai {
 			if (singleMove) {
 				singleMoveMap.put(destination,move);
 			}
+			// removing double moves that go to and back to the same spot
 			if (!singleMove && (destination != move.source())){
 				doubleMoveMap.put(destination,move);
 			}
@@ -319,5 +319,20 @@ public class MyAi implements Ai {
         return new ArrayList<>(singleMoveMap.values());
 	}
 
+	public static <N, V> void printGraphToFile(MutableValueGraph<N, V> graph, String filename) {
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+			writer.write("Graph:\n");
+			for (N node : graph.nodes()) {
+				for (N neighbor : graph.successors(node)) {
+					V value = graph.edgeValueOrDefault(node, neighbor, null);
+					writer.write(node + " -> " + neighbor + " [Value: " + value + "]\n");
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
+
+
 
