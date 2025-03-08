@@ -70,6 +70,7 @@ public class MyAi implements Ai {
 				source = move.source();
 			}
 		}
+
 		MutableValueGraph<Board.GameState, Move> graph = ValueGraphBuilder.directed().allowsSelfLoops(false).build();
 		graph.addNode(gameState); // add root node
 
@@ -78,9 +79,9 @@ public class MyAi implements Ai {
 		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
 		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
-
 		double bestVal = miniMax(gameState, graph, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
 //		Board.GameState chosenState = finalMap.get(bestVal);
+
 		Move chosenMove = null;
 		double maxDistance = -1;
 		Map<Integer, Double> dijkstraLastLocation = dijkstra(gameState, lastLocation);
@@ -106,6 +107,8 @@ public class MyAi implements Ai {
 				chosenMove = tempMove;
 			}
 		}
+		System.out.println(finalMap);
+
 		printGraphToFile(graph,"graph.txt");
         assert chosenMove != null;
         return chosenMove;
@@ -151,7 +154,6 @@ public class MyAi implements Ai {
 		return distances;
 	}
 
-
 	public void miniMaxGraph(Board.GameState gameState, ArrayList<Move> moves, Map<Integer, Double> dijkstraResult, Piece mover, MutableValueGraph<Board.GameState, Move> graph, ArrayList<Piece> playerRemainingList) {
 		ArrayList<Piece> tempRemainingList = new ArrayList<>(playerRemainingList);
 		Board.GameState newState = null;
@@ -181,6 +183,9 @@ public class MyAi implements Ai {
 				filteredMoves = moves;
 			}
 			//eliminateMoves(moves,false)
+			if (filteredMoves.isEmpty()){
+				System.out.println("hello");
+			}
 			for (Move move : filteredMoves) {
 				if (move.commencedBy() == mover) {
 					newState = gameState.advance(move); // new state with move used

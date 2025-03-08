@@ -50,6 +50,7 @@ public class MyAi2 implements Ai {
                 detectivesList.add(newPlayer);
             }
         }
+        Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
         int lastLocation = location;
         for (LogEntry entry : board.getMrXTravelLog()) {
@@ -58,8 +59,7 @@ public class MyAi2 implements Ai {
             }
         }
 
-        Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
-
+        ArrayList<Move> moves = new ArrayList<Move>(gameState.getAvailableMoves().asList());
         int source = 0;
         for (Move move : gameState.getAvailableMoves()) {
             if (move.commencedBy().isMrX()) {
@@ -68,11 +68,10 @@ public class MyAi2 implements Ai {
         }
 
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
+        ArrayList<Move> newMoves = duplicatePruning(moves);
         Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
-        ArrayList<Move> moves = new ArrayList<Move>(gameState.getAvailableMoves().asList());
-        ArrayList<Move> newMoves = duplicatePruning(moves);
-        double bestVal = miniMax(dijkstraResult, playerList, true, location, gameState, finalMap, newMoves);
+        double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves);
 
         Move chosenMove = null;
         double maxDistance = -1;
@@ -98,7 +97,10 @@ public class MyAi2 implements Ai {
                 chosenMove = tempMove;
             }
         }
+
+
         System.out.println(finalMap);
+        assert chosenMove != null;
         return chosenMove;
     }
 
@@ -141,20 +143,28 @@ public class MyAi2 implements Ai {
         return distances;
     }
 
-    public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, boolean isMrX, int mrXlocation, Board.GameState gameState, ArrayListMultimap<Double, Move> finalMap, List<Move> moves) {
+    public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, Board.GameState gameState, ArrayListMultimap<Double, Move> finalMap, List<Move> moves) {
+        //System.out.println(mover);
         double bestVal = 0;
         double value = 0;
         ArrayList<Piece> tempPlayers = new ArrayList<>(players);
 
         Piece mover = tempPlayers.get(0); // remove current player
-        tempPlayers.remove(0);
+        //tempPlayers.remove(0);
+        //System.out.println(mover);
+        if (tempPlayers.size() != 1) {
+            tempPlayers.remove(0);
+        }
         if (tempPlayers.isEmpty()) { // leaf node
-            Detective lastPiece = (Detective) gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1);
+            //Detective lastPiece = (Detective) gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1);
+            Detective lastPiece = (Detective) mover;
             return dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get());
         }
 
+        //System.out.println(mover);
         if (mover.isMrX()) {
             bestVal = Double.NEGATIVE_INFINITY;
+
             double detectiveTotal = 0;
             ArrayList<Move> moveList = new ArrayList<>(moves);
             for (Piece detective : players) {
@@ -162,14 +172,14 @@ public class MyAi2 implements Ai {
                     detectiveTotal += dijkstraResult.get(gameState.getDetectiveLocation((Detective) detective).get());
                 }
             }
-            if (detectiveTotal <= (gameState.getPlayers().size() - 1) * 3) {
-                if (!(doubleOrSingleFilter(moves, false).isEmpty())) { // there is double moves
-                    moveList = doubleOrSingleFilter(moves, false);
-                }
+            if (detectiveTotal <= gameState.getPlayers().size() * 2) {
+                moveList = doubleOrSingleFilter(moves, false);
+                //System.out.println(moveList);
             }
-            else {
+            if (!(detectiveTotal <= gameState.getPlayers().size() * 2) || moveList.isEmpty()) {
                 moveList = doubleOrSingleFilter(moves, true);
             }
+
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
                 int destination = move.accept(new Move.Visitor<Integer>() {
@@ -184,7 +194,7 @@ public class MyAi2 implements Ai {
                     }
                 });
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(dijkstra(newState,destination), tempPlayers, false, mrXlocation, newState, finalMap, duplicatePruning(newMoves));
+                value = miniMax(dijkstra(newState,destination), tempPlayers, newState, finalMap, duplicatePruning(newMoves));
                 finalMap.put(value, move);
                 bestVal = Math.max(value, bestVal);
             }
@@ -192,21 +202,26 @@ public class MyAi2 implements Ai {
 
         } else { // detective
             bestVal = Double.POSITIVE_INFINITY;
-            ArrayList<Move> moveList = getPlayerMoves(moves, players, mover);
-            if (moveList.isEmpty()) return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()); // if they dont have moves just return the distance to them.
+            ArrayList<Move> moveList = getPlayerMoves(moves, mover);
+            if (moveList.isEmpty()) {
+                //System.out.println(mover);
+                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they dont have moves just return the distance to them.
+            }
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(dijkstraResult, tempPlayers, false, mrXlocation, newState, finalMap, duplicatePruning(newMoves));
+                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, duplicatePruning(newMoves));
 
                 bestVal = Math.min(value, bestVal);
+            }
+            if (tempPlayers.size() == 1) {
+                tempPlayers.remove(0);
             }
             return bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());
         }
     }
 
-
-    public static ArrayList<Move> getPlayerMoves(List<Move> moves, List<Piece> players, Piece currentPlayer) {
+    public static ArrayList<Move> getPlayerMoves(List<Move> moves, Piece currentPlayer) {
         ArrayList<Move> resultList = new ArrayList<>();
         for (Move move : moves) {
             if (move.commencedBy() == currentPlayer) {
