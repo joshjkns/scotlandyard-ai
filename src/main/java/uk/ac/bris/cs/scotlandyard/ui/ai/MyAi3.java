@@ -17,17 +17,19 @@ import uk.ac.bris.cs.gamekit.graph.Node;
 
 import java.util.*;
 
-        import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.graph.*;
-        import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet;
 
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
-        import uk.ac.bris.cs.scotlandyard.model.*;
+import uk.ac.bris.cs.scotlandyard.model.*;
 
 public class MyAi3 implements Ai {
 
-    @Nonnull @Override public String name() { return "[MRX] MiniMax v3"; }
+    ArrayList<Move> mrXMoves = new ArrayList<>();
+
+    @Nonnull @Override public String name() { return "[MRX] 6 layer toilet paper"; }
 
     @Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
         HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
@@ -67,19 +69,20 @@ public class MyAi3 implements Ai {
             }
         }
 
-        ArrayListMultimap<Move, Integer> movesMultimap = ArrayListMultimap.create();
-        filterIrrelevantMoves(moves,gameState,movesMultimap);
-        System.out.println(movesMultimap);
+        //ArrayListMultimap<Move, Integer> movesMultimap = ArrayListMultimap.create();
+        //filterIrrelevantMoves(moves,gameState,movesMultimap);
+        //System.out.println(movesMultimap);
 
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
-        ArrayList<Move> newMoves = duplicatePruning(moves);
-        Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
+        ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
+        newMoves = noRepeatMoves(newMoves);
+        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, location);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
         double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves);
 
         Move chosenMove = null;
         double maxDistance = -1;
-        Map<Integer, Double> dijkstraLastLocation = dijkstra(gameState, lastLocation);
+        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState, lastLocation);
         for (Move tempMove : finalMap.get(bestVal)) {
             if (maxDistance == -1) {
                 chosenMove = tempMove;
@@ -100,51 +103,13 @@ public class MyAi3 implements Ai {
                 maxDistance = distance;
                 chosenMove = tempMove;
             }
-        }
 
+        }
 
         System.out.println(finalMap);
+        mrXMoves.add(chosenMove);
         assert chosenMove != null;
         return chosenMove;
-    }
-
-    public static Map<Integer, Double> dijkstra(Board.GameState board, int source){
-        ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> valueGraph = board.getSetup().graph;
-        Map<Integer, Double> distances = new HashMap<>();
-        Map<Integer, Boolean> visited = new HashMap<>();
-
-        for (int i = 1; i <= 199; i++) {
-            distances.put(i, Double.POSITIVE_INFINITY);
-            visited.put(i, false);
-        }
-
-        distances.put(source, 0.0);
-        visited.put(source, true);
-
-        while (visited.containsValue(false)) {
-            for (Map.Entry<Integer, Double> entry : distances.entrySet()) { // entry.getKey() is every node
-                if (visited.get(entry.getKey())){ // visited = true
-                    Set<Integer> adjNodes = valueGraph.adjacentNodes(entry.getKey());
-                    for (int nextNode : adjNodes){
-                        if (!visited.get(nextNode)){
-                            if (valueGraph.edgeValue(entry.getKey(), nextNode).get().stream().anyMatch(t -> t.requiredTicket() == Ticket.SECRET)) {
-                                break;
-                            }
-                            double newDistance = entry.getValue() + 1;
-                            if (newDistance < distances.get(nextNode)) {
-                                distances.put(nextNode, newDistance);
-                            }
-                        }
-                    }
-                }
-            }
-            for (Map.Entry<Integer, Double> entry : distances.entrySet()){
-                if (entry.getValue() != Double.POSITIVE_INFINITY) {
-                    visited.put(entry.getKey(), true);
-                }
-            }
-        }
-        return distances;
     }
 
     public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, Board.GameState gameState, ArrayListMultimap<Double, Move> finalMap, List<Move> moves) {
@@ -177,11 +142,11 @@ public class MyAi3 implements Ai {
                 }
             }
             if (detectiveTotal <= gameState.getPlayers().size() * 2) {
-                moveList = doubleOrSingleFilter(moves, false);
+                moveList = Filter.doubleOrSingleFilter(moves, false);
                 //System.out.println(moveList);
             }
             if (!(detectiveTotal <= gameState.getPlayers().size() * 2) || moveList.isEmpty()) {
-                moveList = doubleOrSingleFilter(moves, true);
+                moveList = Filter.doubleOrSingleFilter(moves, true);
             }
 
             for (Move move : moveList) {
@@ -198,7 +163,7 @@ public class MyAi3 implements Ai {
                     }
                 });
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(dijkstra(newState,destination), tempPlayers, newState, finalMap, duplicatePruning(newMoves));
+                value = miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves));
                 finalMap.put(value, move);
                 bestVal = Math.max(value, bestVal);
             }
@@ -214,7 +179,7 @@ public class MyAi3 implements Ai {
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, duplicatePruning(newMoves));
+                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves));
 
                 bestVal = Math.min(value, bestVal);
             }
@@ -235,72 +200,10 @@ public class MyAi3 implements Ai {
         return resultList;
     }
 
-    public static ArrayList<Move> doubleOrSingleFilter(List<Move> moves, boolean singleMoves) {
+    public ArrayList<Move> noRepeatMoves(ArrayList<Move> moves){
         ArrayList<Move> returnMoves = new ArrayList<>();
-        for (Move move : moves) {
-            int isSingleMove = move.accept(new Move.Visitor<Integer>() {
-                @Override
-                public Integer visit(Move.SingleMove move) {
-                    return 1;
-                }
-
-                @Override
-                public Integer visit(Move.DoubleMove move) {
-                    return 0;
-                }
-            });
-            if (singleMoves && (isSingleMove == 1)) {
-                returnMoves.add(move);
-            }
-            if (!singleMoves && (isSingleMove == 0)) {
-                returnMoves.add(move);
-            }
-        }
-        return returnMoves;
-    }
-
-    public static ArrayList<Move> duplicatePruning(ArrayList<Move> moves) {
-        Map.Entry<Integer,Boolean> entry;
-        Map<Integer,Move> singleMoveMap = new HashMap<>();
-        Map<Integer,Move> doubleMoveMap = new HashMap<>();
-        Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
-        for (Move move : moves) {
-            entry = move.accept(new Move.Visitor<Map.Entry<Integer,Boolean>>() {
-                @Override
-                public Map.Entry<Integer,Boolean> visit(Move.SingleMove move) {
-                    return new AbstractMap.SimpleEntry<>(move.destination, true);
-                }
-
-                @Override
-                public Map.Entry<Integer,Boolean> visit(Move.DoubleMove move) {
-                    return new AbstractMap.SimpleEntry<>(move.destination2, false);
-                }
-            });
-            int destination = entry.getKey();
-            boolean singleMove = entry.getValue();
-            if (singleMove) {
-                singleMoveMap.put(destination,move);
-            }
-            // removing double moves that go to and back to the same spot
-            if (!singleMove && (destination != move.source())){
-                doubleMoveMap.put(destination,move);
-            }
-        }
-        for (int tempDestination : doubleMoveMap.keySet()) {
-            if (!(singleMoveMap.containsKey(tempDestination))){
-                singleMoveMap.put(tempDestination, doubleMoveMap.get(tempDestination));
-            }
-        }
-        return new ArrayList<>(singleMoveMap.values());
-    }
-
-    public static ArrayList<Move> filterIrrelevantMoves(ArrayList<Move> moves, Board.GameState gameState,ArrayListMultimap<Move, Integer> movesMultimap){
-        ArrayList<Move> operationMoves = new ArrayList<>(duplicatePruning(moves));
-        operationMoves = doubleOrSingleFilter(operationMoves,true);
-        ArrayList<Piece> players = new ArrayList<>(gameState.getPlayers());
-        for (Move induvidualMove : operationMoves){
-            Board.GameState newState = gameState.advance(induvidualMove);
-            int destination = induvidualMove.accept(new Move.Visitor<>() {
+        for (Move individualMove : moves){
+            int destination = individualMove.accept(new Move.Visitor<Integer>() {
                 @Override
                 public Integer visit(Move.SingleMove move) {
                     return move.destination;
@@ -311,32 +214,19 @@ public class MyAi3 implements Ai {
                     return move.destination2;
                 }
             });
-            Map<Integer, Double> dijkstraResult = dijkstra(newState, destination);
-            int totalDistance = 0;
-            for (Piece induvidualPlayer : players){
-                if (induvidualPlayer.isDetective()){
-                    Detective currentPiece = (Detective) induvidualPlayer;
-                    totalDistance += dijkstraResult.get(newState.getDetectiveLocation(currentPiece).get());
+            if (!(mrXMoves.isEmpty())) {
+                if (!(destination == mrXMoves.get(mrXMoves.size() - 1).source()) || !(moves.size() > 1)) {
+                    returnMoves.add(individualMove);
                 }
             }
-            movesMultimap.put(induvidualMove, totalDistance);
+            else{
+                returnMoves.add(individualMove);
+            }
+            //returnMoves.add(individualMove);
         }
-        return operationMoves;
+        return returnMoves;
     }
 
-    public static <N, V> void printGraphToFile(MutableValueGraph<N, V> graph, String filename) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
-            writer.write("Graph:\n");
-            for (N node : graph.nodes()) {
-                for (N neighbor : graph.successors(node)) {
-                    V value = graph.edgeValueOrDefault(node, neighbor, null);
-                    writer.write(node + " -> " + neighbor + " [Value: " + value + "]\n");
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }
 
 

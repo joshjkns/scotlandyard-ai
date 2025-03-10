@@ -66,8 +66,8 @@ public class MyAi implements Ai {
 		graph.addNode(gameState); // add root node
 
 		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
-		ArrayList<Move> newMoves = duplicatePruning(moves);
-		Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
+		ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
+		Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, source);
 		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
 		double bestVal = miniMax(gameState, graph, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
@@ -75,7 +75,7 @@ public class MyAi implements Ai {
 
 		Move chosenMove = null;
 		double maxDistance = -1;
-		Map<Integer, Double> dijkstraLastLocation = dijkstra(gameState, lastLocation);
+		Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState, lastLocation);
 		for (Board.GameState tempState : finalMap.get(bestVal)) {
 			Move tempMove = graph.edgeValue(gameState, tempState).get();
 			if (maxDistance == -1) {
@@ -98,50 +98,16 @@ public class MyAi implements Ai {
 				chosenMove = tempMove;
 			}
 		}
+		ArrayList<Move> printMap = new ArrayList<>();
+		for (Board.GameState individualGameState : finalMap.values()){
+			printMap.add(graph.edgeValue(gameState,individualGameState).get());
+		}
+		System.out.println(printMap);
 		System.out.println(finalMap);
 
     assert chosenMove != null;
     return chosenMove;
 
-	}
-
-	public static Map<Integer, Double> dijkstra(Board.GameState board, int source){
-		ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> valueGraph = board.getSetup().graph;
-		Map<Integer, Double> distances = new HashMap<>();
-		Map<Integer, Boolean> visited = new HashMap<>();
-
-		for (int i = 1; i <= 199; i++) {
-			distances.put(i, Double.POSITIVE_INFINITY);
-			visited.put(i, false);
-		}
-
-		distances.put(source, 0.0);
-		visited.put(source, true);
-
-		while (visited.containsValue(false)) {
-			for (Map.Entry<Integer, Double> entry : distances.entrySet()) { // entry.getKey() is every node
-				if (visited.get(entry.getKey())){ // visited = true
-					Set<Integer> adjNodes = valueGraph.adjacentNodes(entry.getKey());
-					for (int nextNode : adjNodes){
-						if (!visited.get(nextNode)){
-							if (valueGraph.edgeValue(entry.getKey(), nextNode).get().stream().anyMatch(t -> t.requiredTicket() == Ticket.SECRET)) {
-								break;
-							}
-							double newDistance = entry.getValue() + 1;
-							if (newDistance < distances.get(nextNode)) {
-								distances.put(nextNode, newDistance);
-							}
-						}
-					}
-				}
-			}
-			for (Map.Entry<Integer, Double> entry : distances.entrySet()){
-				if (entry.getValue() != Double.POSITIVE_INFINITY) {
-					visited.put(entry.getKey(), true);
-				}
-			}
-		}
-		return distances;
 	}
 
 	public void miniMaxGraph(Board.GameState gameState, ArrayList<Move> moves, Map<Integer, Double> dijkstraResult, Piece mover, MutableValueGraph<Board.GameState, Move> graph, ArrayList<Piece> playerRemainingList) {
@@ -162,11 +128,11 @@ public class MyAi implements Ai {
 					}
 				}
 				if (totalDistances <= gameState.getPlayers().size() * 2) {
-					filteredMoves = doubleOrSingleFilter(moves, false);
+					filteredMoves = Filter.doubleOrSingleFilter(moves, false);
 					System.out.println(filteredMoves);
 				}
 				if ((totalDistances > gameState.getPlayers().size() * 2) || filteredMoves.isEmpty()){
-					filteredMoves = doubleOrSingleFilter(moves, true);
+					filteredMoves = Filter.doubleOrSingleFilter(moves, true);
 				}
 			}
 			if (mover.isDetective()) {
@@ -184,7 +150,7 @@ public class MyAi implements Ai {
 					// connect to the root node
 					if (!tempRemainingList.isEmpty()) {
 						ArrayList<Move> newMoves = new ArrayList<Move>(newState.getAvailableMoves().asList());
-						miniMaxGraph(newState, duplicatePruning(newMoves), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
+						miniMaxGraph(newState, Filter.duplicatePruning(newMoves), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
 					}
 				}
 			}
@@ -223,7 +189,7 @@ public class MyAi implements Ai {
 							return move.destination2;
 						}
 					});
-					Map<Integer, Double> dijkstraResultInput = dijkstra(child, destination);
+					Map<Integer, Double> dijkstraResultInput = Dijkstra.dijkstraFunction(child, destination);
 					value = miniMax(child, graph, alpha, beta, dijkstraResultInput, tempRemainingList, finalMap);
 					bestVal = Math.max(bestVal, value);
 					finalMap.put(value, child);
@@ -257,64 +223,6 @@ public class MyAi implements Ai {
 		return bestVal;
 	}
 
-	public static ArrayList<Move> doubleOrSingleFilter(ArrayList<Move> moves, boolean singleMoves) {
-		ArrayList<Move> returnMoves = new ArrayList<>();
-		for (Move move : moves) {
-			int isSingleMove = move.accept(new Move.Visitor<Integer>() {
-				@Override
-				public Integer visit(Move.SingleMove move) {
-					return 1;
-				}
-
-				@Override
-				public Integer visit(Move.DoubleMove move) {
-					return 0;
-				}
-			});
-			if (singleMoves && (isSingleMove == 1)) {
-				returnMoves.add(move);
-			}
-			if (!singleMoves && (isSingleMove == 0)) {
-				returnMoves.add(move);
-			}
-		}
-		return returnMoves;
-	}
-
-	public static ArrayList<Move> duplicatePruning(ArrayList<Move> moves) {
-        Map.Entry<Integer,Boolean> entry;
-		Map<Integer,Move> singleMoveMap = new HashMap<>();
-		Map<Integer,Move> doubleMoveMap = new HashMap<>();
-		Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
-		for (Move move : moves) {
-			entry = move.accept(new Move.Visitor<Map.Entry<Integer,Boolean>>() {
-				@Override
-				public Map.Entry<Integer,Boolean> visit(Move.SingleMove move) {
-                    return new AbstractMap.SimpleEntry<>(move.destination, true);
-				}
-
-				@Override
-				public Map.Entry<Integer,Boolean> visit(Move.DoubleMove move) {
-                    return new AbstractMap.SimpleEntry<>(move.destination2, false);
-				}
-			});
-			int destination = entry.getKey();
-			boolean singleMove = entry.getValue();
-			if (singleMove) {
-				singleMoveMap.put(destination,move);
-			}
-			// removing double moves that go to and back to the same spot
-			if (!singleMove && (destination != move.source())){
-				doubleMoveMap.put(destination,move);
-			}
-		}
-		for (int tempDestination : doubleMoveMap.keySet()) {
-			if (!(singleMoveMap.containsKey(tempDestination))){
-				singleMoveMap.put(tempDestination, doubleMoveMap.get(tempDestination));
-			}
-		}
-        return new ArrayList<>(singleMoveMap.values());
-	}
 }
 
 
