@@ -17,17 +17,17 @@ import uk.ac.bris.cs.gamekit.graph.Node;
 
 import java.util.*;
 
-import com.google.common.collect.ImmutableMap;
+        import com.google.common.collect.ImmutableMap;
 import com.google.common.graph.*;
-import com.google.common.collect.ImmutableSet;
+        import com.google.common.collect.ImmutableSet;
 
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
-import uk.ac.bris.cs.scotlandyard.model.*;
+        import uk.ac.bris.cs.scotlandyard.model.*;
 
-public class MyAi2 implements Ai {
+public class MyAi3 implements Ai {
 
-    @Nonnull @Override public String name() { return "[MRX] MiniMax v2"; }
+    @Nonnull @Override public String name() { return "[MRX] MiniMax v3"; }
 
     @Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
         HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
@@ -338,6 +338,7 @@ public class MyAi2 implements Ai {
         }
     }
 }
+
 
 
 
