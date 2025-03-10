@@ -1,19 +1,10 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ArrayListMultimap;
-import org.glassfish.grizzly.Transport;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import com.google.common.collect.ImmutableList;
 import io.atlassian.fugue.Pair;
-import uk.ac.bris.cs.gamekit.graph.Node;
 
 import java.util.*;
 
@@ -29,6 +20,7 @@ public class MyAi2 implements Ai {
 
     @Nonnull @Override public String name() { return "[MRX] MiniMax v2"; }
 
+    // pick move function to get move (main function)
     @Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
         HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
         ArrayList<Ticket> tempTicketList = new ArrayList<>(Arrays.asList(Ticket.TAXI, Ticket.BUS, Ticket.UNDERGROUND, Ticket.DOUBLE, Ticket.SECRET));
@@ -36,22 +28,29 @@ public class MyAi2 implements Ai {
         ArrayList<Player> detectivesList = new ArrayList<>();
         Player mrX = null;
         int location = 0;
+        
+        // creating temporary gamestate to allow advance() to be used.
+        // for all pieces
         for (Piece piece : board.getPlayers()) {
             for (Ticket ticket : tempTicketList) {
+                // put their tickets into a map with each ticket type and the number of them.
                 tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
             }
-            if (piece.isMrX()){
+            if (piece.isMrX()){ // if piece is mrx, get his location and create his player
                 location = board.getAvailableMoves().asList().get(0).source();
                 mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
             } else {
+                // cast piece to a detective and get their location before making their player.
                 Detective newDetective = (Detective) piece;
                 Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
                 Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), detectiveLocation.get());
                 detectivesList.add(newPlayer);
             }
         }
+        // get the gamestate from the list of players, mrx and the setup
         Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
+        // lastlocation is set to location unless he has made a reveal move - tries to get away due to players naturally going there.
         int lastLocation = location;
         for (LogEntry entry : board.getMrXTravelLog()) {
             if (entry.location().isPresent()) {
@@ -59,6 +58,7 @@ public class MyAi2 implements Ai {
             }
         }
 
+        // looping through moves to get mrX source - why are we doign this
         ArrayList<Move> moves = new ArrayList<Move>(gameState.getAvailableMoves().asList());
         int source = 0;
         for (Move move : gameState.getAvailableMoves()) {
@@ -67,20 +67,20 @@ public class MyAi2 implements Ai {
             }
         }
 
-        ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
-        ArrayList<Move> newMoves = duplicatePruning(moves);
-        Map<Integer, Double> dijkstraResult = dijkstra(gameState, source);
-        ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
-        double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves);
+        ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList()); // getting list of pieces for players
+        ArrayList<Move> newMoves = duplicatePruning(moves); // removing duplicate moves using duplicatePruning
+        Map<Integer, Double> dijkstraResult = dijkstra(gameState, source); // calling dijkstras on the source (mrX location)
+        ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create(); // creating multimap rather than map to allow duplicate keys
+        double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves); // getting the best value from the gametree
 
         Move chosenMove = null;
         double maxDistance = -1;
-        Map<Integer, Double> dijkstraLastLocation = dijkstra(gameState, lastLocation);
-        for (Move tempMove : finalMap.get(bestVal)) {
-            if (maxDistance == -1) {
+        Map<Integer, Double> dijkstraLastLocation = dijkstra(gameState, lastLocation); // dijkstra called on prev location of mrX
+        for (Move tempMove : finalMap.get(bestVal)) { // looping through the potential duplicate value moves
+            if (maxDistance == -1) { // assign chosenMove to tempMove to prevent null.
                 chosenMove = tempMove;
             }
-            int destination = tempMove.accept(new Move.Visitor<>() {
+            int destination = tempMove.accept(new Move.Visitor<>() { // use visitor pattern to get the destination of tempMove.
                 @Override
                 public Integer visit(Move.SingleMove move) {
                     return move.destination;
@@ -91,13 +91,13 @@ public class MyAi2 implements Ai {
                     return move.destination2;
                 }
             });
-            double distance = dijkstraLastLocation.get(destination);
+            // pick the move that is furthest away from the last location.
+            double distance = dijkstraLastLocation.get(destination); 
             if (distance > maxDistance) {
                 maxDistance = distance;
                 chosenMove = tempMove;
             }
         }
-
 
         System.out.println(finalMap);
         assert chosenMove != null;
@@ -288,20 +288,6 @@ public class MyAi2 implements Ai {
             }
         }
         return new ArrayList<>(singleMoveMap.values());
-    }
-
-    public static <N, V> void printGraphToFile(MutableValueGraph<N, V> graph, String filename) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
-            writer.write("Graph:\n");
-            for (N node : graph.nodes()) {
-                for (N neighbor : graph.successors(node)) {
-                    V value = graph.edgeValueOrDefault(node, neighbor, null);
-                    writer.write(node + " -> " + neighbor + " [Value: " + value + "]\n");
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }
 
