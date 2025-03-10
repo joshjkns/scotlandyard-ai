@@ -1,19 +1,10 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ArrayListMultimap;
-import org.glassfish.grizzly.Transport;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import com.google.common.collect.ImmutableList;
 import io.atlassian.fugue.Pair;
-import uk.ac.bris.cs.gamekit.graph.Node;
 import uk.ac.bris.cs.scotlandyard.model.Ai;
 import uk.ac.bris.cs.scotlandyard.model.Board;
 import uk.ac.bris.cs.scotlandyard.model.Move;
@@ -109,9 +100,8 @@ public class MyAi implements Ai {
 		}
 		System.out.println(finalMap);
 
-		printGraphToFile(graph,"graph.txt");
-        assert chosenMove != null;
-        return chosenMove;
+    assert chosenMove != null;
+    return chosenMove;
 
 	}
 
@@ -237,6 +227,7 @@ public class MyAi implements Ai {
 					value = miniMax(child, graph, alpha, beta, dijkstraResultInput, tempRemainingList, finalMap);
 					bestVal = Math.max(bestVal, value);
 					finalMap.put(value, child);
+//				 Alpha Beta pruning
 //					alpha = Math.max(alpha, bestVal);
 //					if (beta <= alpha) {
 //						break;
@@ -251,6 +242,7 @@ public class MyAi implements Ai {
 				for (Board.GameState child : graph.successors(state)) {
 					value = miniMax(child, graph, alpha, beta, dijkstraResult, tempRemainingList, finalMap);
 					bestVal = Math.min(bestVal, value);
+//				Alpha Beta pruning
 //					beta = Math.min(beta, bestVal);
 //					if (beta <= alpha) {
 //						break;
@@ -322,20 +314,6 @@ public class MyAi implements Ai {
 			}
 		}
         return new ArrayList<>(singleMoveMap.values());
-	}
-
-	public static <N, V> void printGraphToFile(MutableValueGraph<N, V> graph, String filename) {
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
-			writer.write("Graph:\n");
-			for (N node : graph.nodes()) {
-				for (N neighbor : graph.successors(node)) {
-					V value = graph.edgeValueOrDefault(node, neighbor, null);
-					writer.write(node + " -> " + neighbor + " [Value: " + value + "]\n");
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 }
 
