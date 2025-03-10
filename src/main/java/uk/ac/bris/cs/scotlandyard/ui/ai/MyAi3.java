@@ -74,11 +74,14 @@ public class MyAi3 implements Ai {
         //System.out.println(movesMultimap);
 
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
+        playerList.add(MrX.MRX);
+        playerList.add(Piece.Detective.RED);
+
         ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
         newMoves = noRepeatMoves(newMoves);
         Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, location);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
-        double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves);
+        double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
 
         Move chosenMove = null;
         double maxDistance = -1;
@@ -106,13 +109,13 @@ public class MyAi3 implements Ai {
 
         }
 
-        System.out.println(finalMap);
+        //System.out.println(finalMap);
         mrXMoves.add(chosenMove);
         assert chosenMove != null;
         return chosenMove;
     }
 
-    public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, Board.GameState gameState, ArrayListMultimap<Double, Move> finalMap, List<Move> moves) {
+    public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, Board.GameState gameState, ArrayListMultimap<Double, Move> finalMap, List<Move> moves, double alpha, double beta) {
         //System.out.println(mover);
         double bestVal = 0;
         double value = 0;
@@ -136,16 +139,15 @@ public class MyAi3 implements Ai {
 
             double detectiveTotal = 0;
             ArrayList<Move> moveList = new ArrayList<>(moves);
-            for (Piece detective : players) {
+            for (Piece detective : gameState.getPlayers()) {
                 if (detective.isDetective()) {
                     detectiveTotal += dijkstraResult.get(gameState.getDetectiveLocation((Detective) detective).get());
                 }
             }
             if (detectiveTotal <= gameState.getPlayers().size() * 2) {
                 moveList = Filter.doubleOrSingleFilter(moves, false);
-                //System.out.println(moveList);
             }
-            if (!(detectiveTotal <= gameState.getPlayers().size() * 2) || moveList.isEmpty()) {
+            if (detectiveTotal > gameState.getPlayers().size() * 2) {
                 moveList = Filter.doubleOrSingleFilter(moves, true);
             }
 
@@ -163,9 +165,17 @@ public class MyAi3 implements Ai {
                     }
                 });
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves));
-                finalMap.put(value, move);
+                value = miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves), alpha, beta);
+                if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
                 bestVal = Math.max(value, bestVal);
+//                alpha = Math.max(bestVal, alpha);
+//                if (beta <= alpha) {
+//                    System.out.println("mrX break");
+//                    break;
+//                }
+            }
+            if (tempPlayers.size() == 1) {
+                tempPlayers.remove(0);
             }
             return bestVal; // max values of all of mrx nodes
 
@@ -179,9 +189,13 @@ public class MyAi3 implements Ai {
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves));
-
+                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves), alpha, beta);
                 bestVal = Math.min(value, bestVal);
+//                beta = Math.min(bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()), beta);
+//                if (beta <= alpha){
+//                    System.out.println("Detective break");
+//                    break;
+//                }
             }
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
