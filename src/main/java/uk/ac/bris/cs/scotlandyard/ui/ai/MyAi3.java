@@ -74,8 +74,8 @@ public class MyAi3 implements Ai {
         //System.out.println(movesMultimap);
 
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
-        playerList.add(MrX.MRX);
-        playerList.add(Piece.Detective.RED);
+        //playerList.add(MrX.MRX);
+        //playerList.add(Piece.Detective.RED);
 
         ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
         newMoves = noRepeatMoves(newMoves);
@@ -109,7 +109,7 @@ public class MyAi3 implements Ai {
 
         }
 
-        //System.out.println(finalMap);
+        System.out.println(finalMap);
         mrXMoves.add(chosenMove);
         assert chosenMove != null;
         return chosenMove;
@@ -147,10 +147,9 @@ public class MyAi3 implements Ai {
             if (detectiveTotal <= gameState.getPlayers().size() * 2) {
                 moveList = Filter.doubleOrSingleFilter(moves, false);
             }
-            if (detectiveTotal > gameState.getPlayers().size() * 2) {
+            if (detectiveTotal > gameState.getPlayers().size() * 2 || (moveList.isEmpty())) {
                 moveList = Filter.doubleOrSingleFilter(moves, true);
             }
-
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
                 int destination = move.accept(new Move.Visitor<Integer>() {
@@ -165,12 +164,23 @@ public class MyAi3 implements Ai {
                     }
                 });
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves), alpha, beta);
+                //newMoves = Filter.duplicatePruning(newMoves);
+                Map<Integer,Double> tempDijkstraResult = Dijkstra.dijkstraFunction(newState,destination);
+
+                ArrayList<Move> newMoveList = new ArrayList<>();
+                for (Piece individualDetectivePiece : gameState.getPlayers().asList()){
+                    if (individualDetectivePiece.isDetective()){
+                        newMoveList.addAll(Filter.filterIrrelevantMovesV2(newMoves,individualDetectivePiece,dijkstraResult));
+                    }
+                }
+
+                System.out.println(newMoves);
+                value = miniMax(tempDijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoveList), alpha, beta);
                 if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
                 bestVal = Math.max(value, bestVal);
 //                alpha = Math.max(bestVal, alpha);
 //                if (beta <= alpha) {
-//                    System.out.println("mrX break");
+//                    //System.out.println("mrX break");
 //                    break;
 //                }
             }
@@ -191,9 +201,9 @@ public class MyAi3 implements Ai {
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
                 value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves), alpha, beta);
                 bestVal = Math.min(value, bestVal);
-//                beta = Math.min(bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()), beta);
+                beta = Math.min(bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()), beta);
 //                if (beta <= alpha){
-//                    System.out.println("Detective break");
+//                    //System.out.println("Detective break");
 //                    break;
 //                }
             }
@@ -228,8 +238,8 @@ public class MyAi3 implements Ai {
                     return move.destination2;
                 }
             });
-            if (!(mrXMoves.isEmpty())) {
-                if (!(destination == mrXMoves.get(mrXMoves.size() - 1).source()) || !(moves.size() > 1)) {
+            if (!(mrXMoves.isEmpty()) && (moves.size() > 1)) {
+                if (!(destination == mrXMoves.get(mrXMoves.size() - 1).source())) {
                     returnMoves.add(individualMove);
                 }
             }
