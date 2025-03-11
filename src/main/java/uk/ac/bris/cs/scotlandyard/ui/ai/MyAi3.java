@@ -29,7 +29,7 @@ public class MyAi3 implements Ai {
 
     ArrayList<Move> mrXMoves = new ArrayList<>();
 
-    @Nonnull @Override public String name() { return "[MRX] 6 layer toilet paper"; }
+    @Nonnull @Override public String name() { return "[MRX:3] 6 layer (No Graph)"; }
 
     @Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
         HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();

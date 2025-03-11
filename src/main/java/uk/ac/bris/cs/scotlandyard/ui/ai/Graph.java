@@ -6,7 +6,6 @@ import com.google.common.graph.*;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
-
 class GraphThread extends Thread {
 	private final Move move;
   private final Piece mover;
@@ -30,10 +29,8 @@ class GraphThread extends Thread {
         if (move.commencedBy() == mover) {
             Board.GameState newState = gameState.advance(move);
 
-            synchronized (graph) { // avoiding the concurrent modification of the graph
-                graph.addNode(newState);
-                graph.putEdgeValue(gameState, newState, move);
-            }
+            graph.addNode(newState);
+            graph.putEdgeValue(gameState, newState, move);
 
             if (!tempRemainingList.isEmpty()) {
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves().asList());

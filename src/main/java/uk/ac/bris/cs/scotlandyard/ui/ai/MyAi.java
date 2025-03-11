@@ -22,7 +22,7 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
 public class MyAi implements Ai {
 
-	@Nonnull @Override public String name() { return "[MRX] 6 layer boss"; }
+	@Nonnull @Override public String name() { return "[MRX:1] 6 layer boss (Graph)"; }
 
 	@Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
 		HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();

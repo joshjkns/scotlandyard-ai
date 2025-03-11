@@ -19,7 +19,7 @@ public class MyAi4 implements Ai {
 
 	ArrayList<Move> mrXMoves = new ArrayList<>();
 
-	@Nonnull @Override public String name() { return "[MRX] 6 layer multitasker"; }
+	@Nonnull @Override public String name() { return "[MRX:4] MT testing (Graph)"; }
 
 	@Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
 		HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
