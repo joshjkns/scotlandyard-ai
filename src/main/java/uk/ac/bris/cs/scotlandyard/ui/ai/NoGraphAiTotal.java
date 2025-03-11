@@ -1,35 +1,24 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ArrayListMultimap;
-import org.glassfish.grizzly.Transport;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import com.google.common.collect.ImmutableList;
 import io.atlassian.fugue.Pair;
-import uk.ac.bris.cs.gamekit.graph.Node;
 
 import java.util.*;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.graph.*;
-import com.google.common.collect.ImmutableSet;
 
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
-public class MyAi31 implements Ai {
+public class NoGraphAiTotal implements Ai {
 
     ArrayList<Move> mrXMoves = new ArrayList<>();
 
-    @Nonnull @Override public String name() { return "[MRX:3] 6 layer min to closest player (No Graph)"; }
+    @Nonnull @Override public String name() { return "[MRX] 6 layer total (No Graph)"; }
 
     @Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
         HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
@@ -211,7 +200,7 @@ public class MyAi31 implements Ai {
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
             }
-            return Math.min(bestVal,dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));
+            return bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());
         }
     }
 
@@ -253,7 +242,6 @@ public class MyAi31 implements Ai {
     }
 
 }
-
 
 
 

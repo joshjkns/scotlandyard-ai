@@ -84,6 +84,7 @@ public class Graph {
 				} else {
 					if (move.commencedBy() == mover) {
 						Board.GameState newState = gameState.advance(move); // new state with move used
+						if (!newState.getWinner().isEmpty()) continue;
 						graph.addNode(newState); // add this to the graph
 						graph.putEdgeValue(gameState, newState, move);
 						// connect to the root node

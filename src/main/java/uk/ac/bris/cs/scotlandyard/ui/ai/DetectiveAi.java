@@ -19,7 +19,7 @@ import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
-public class MyDetectiveAI implements Ai {
+public class DetectiveAi implements Ai {
 
     @Nonnull @Override public String name() { return "[Detective] AI"; }
 

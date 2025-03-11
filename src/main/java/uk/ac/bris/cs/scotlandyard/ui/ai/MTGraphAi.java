@@ -15,11 +15,11 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
-public class MyAi4 implements Ai {
+public class MTGraphAi implements Ai {
 
 	ArrayList<Move> mrXMoves = new ArrayList<>();
 
-	@Nonnull @Override public String name() { return "[MRX:4] MT testing (Graph)"; }
+	@Nonnull @Override public String name() { return "[MRX] MT (Graph)"; }
 
 	@Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
 		HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();

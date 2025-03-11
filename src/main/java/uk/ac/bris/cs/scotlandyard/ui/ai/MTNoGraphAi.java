@@ -1,35 +1,75 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ArrayListMultimap;
-import org.glassfish.grizzly.Transport;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import com.google.common.collect.ImmutableList;
 import io.atlassian.fugue.Pair;
-import uk.ac.bris.cs.gamekit.graph.Node;
 
 import java.util.*;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.graph.*;
-import com.google.common.collect.ImmutableSet;
 
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
-public class MyAi3 implements Ai {
+class AiThread extends Thread {
+    public Move bestMove;
+    public double mapValue;
+    public ArrayListMultimap<Double, Move> finalMap;
+    private Move move;
+    private Board.GameState gameState;
+    private ArrayList<Piece> tempPlayers;
+    private Map<Integer, Double> dijkstraResult;
+    private double value;
+    private double alpha;
+    private double beta;
+
+    public AiThread(ArrayListMultimap<Double, Move> finalMap, Move move, Board.GameState gameState, ArrayList<Piece> tempPlayers, Map<Integer, Double> dijkstraResult, double alpha, double beta) {
+        this.move = move;
+        this.gameState = gameState;
+        this.tempPlayers = tempPlayers;
+        this.dijkstraResult = dijkstraResult;
+        this.alpha = alpha;
+        this.beta = beta;
+        this.value = 0;
+        this.mapValue = 0;
+        this.bestMove = null;
+        this.finalMap = finalMap;
+    }
+
+  @Override
+  public void run() {
+      Board.GameState newState = gameState.advance(move);
+      int destination = move.accept(new Move.Visitor<Integer>() {
+          @Override
+          public Integer visit(Move.SingleMove move) {
+              return move.destination;
+          }
+
+          @Override
+          public Integer visit(Move.DoubleMove move) {
+              return move.destination2;
+          }
+      });
+      ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
+
+      value = MTNoGraphAi.miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, Filter.duplicatePruning(newMoves), alpha, beta, finalMap);
+      if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) {
+          mapValue = value;
+          bestMove = move;
+      }
+  }
+}
+
+public class MTNoGraphAi implements Ai {
 
     ArrayList<Move> mrXMoves = new ArrayList<>();
+    ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
 
-    @Nonnull @Override public String name() { return "[MRX:3] 6 layer total min (No Graph)"; }
+
+    @Nonnull @Override public String name() { return "[MRX] MT (No Graph)"; }
 
     @Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
         HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
@@ -74,14 +114,12 @@ public class MyAi3 implements Ai {
         //System.out.println(movesMultimap);
 
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
-        //playerList.add(MrX.MRX);
-        //playerList.add(Piece.Detective.RED);
 
         ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
         newMoves = noRepeatMoves(newMoves);
         Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, location);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
-        double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        double bestVal = miniMax(dijkstraResult, playerList, gameState, newMoves, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, finalMap);
 
         Move chosenMove = null;
         double maxDistance = -1;
@@ -109,17 +147,18 @@ public class MyAi3 implements Ai {
 
         }
 
-        System.out.println(finalMap);
+        //System.out.println(finalMap);
         mrXMoves.add(chosenMove);
         assert chosenMove != null;
         return chosenMove;
     }
 
-    public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, Board.GameState gameState, ArrayListMultimap<Double, Move> finalMap, List<Move> moves, double alpha, double beta) {
+    public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, Board.GameState gameState, List<Move> moves, double alpha, double beta, ArrayListMultimap<Double, Move> finalMap) {
         //System.out.println(mover);
         double bestVal = 0;
         double value = 0;
         ArrayList<Piece> tempPlayers = new ArrayList<>(players);
+        ArrayList<Move> trialMoves = new ArrayList<>();
 
         Piece mover = tempPlayers.get(0); // remove current player
         //tempPlayers.remove(0);
@@ -130,7 +169,7 @@ public class MyAi3 implements Ai {
         if (tempPlayers.isEmpty()) { // leaf node
             //Detective lastPiece = (Detective) gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1);
             Detective lastPiece = (Detective) mover;
-            return dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get());
+            return Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get()));
         }
 
         //System.out.println(mover);
@@ -147,43 +186,16 @@ public class MyAi3 implements Ai {
             if (detectiveTotal <= gameState.getPlayers().size() * 2) {
                 moveList = Filter.doubleOrSingleFilter(moves, false);
             }
-            if (detectiveTotal > gameState.getPlayers().size() * 2 || (moveList.isEmpty())) {
+            if (detectiveTotal > gameState.getPlayers().size() * 2) {
                 moveList = Filter.doubleOrSingleFilter(moves, true);
             }
 
             for (Move move : moveList) {
-                Board.GameState newState = gameState.advance(move);
-                int destination = move.accept(new Move.Visitor<Integer>() {
-                    @Override
-                    public Integer visit(Move.SingleMove move) {
-                        return move.destination;
-                    }
-
-                    @Override
-                    public Integer visit(Move.DoubleMove move) {
-                        return move.destination2;
-                    }
-                });
-                ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                //newMoves = Filter.duplicatePruning(newMoves);
-                Map<Integer,Double> tempDijkstraResult = Dijkstra.dijkstraFunction(newState,destination);
-
-                ArrayList<Move> newMoveList = new ArrayList<>();
-                for (Piece individualDetectivePiece : gameState.getPlayers().asList()){
-                    if (individualDetectivePiece.isDetective()){
-                        newMoveList.addAll(Filter.filterIrrelevantMovesV2(newMoves,individualDetectivePiece,dijkstraResult));
-                    }
-                }
-
-                System.out.println(newMoves);
-                value = miniMax(tempDijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoveList), alpha, beta);
-                if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
-                bestVal = Math.max(value, bestVal);
-//                alpha = Math.max(bestVal, alpha);
-//                if (beta <= alpha) {
-//                    //System.out.println("mrX break");
-//                    break;
-//                }
+              if (tempPlayers.size() > 4) {
+                  AiThread newThread = new AiThread(finalMap, move, gameState, tempPlayers, dijkstraResult, alpha, beta);
+                  newThread.start();
+                  finalMap.put(newThread.mapValue,newThread.bestMove);
+              }
             }
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
@@ -195,23 +207,23 @@ public class MyAi3 implements Ai {
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
                 //System.out.println(mover);
-                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they dont have moves just return the distance to them.
+                return Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));// if they dont have moves just return the distance to them.
             }
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves), alpha, beta);
+                value = miniMax(dijkstraResult, tempPlayers, newState, Filter.duplicatePruning(newMoves), alpha, beta, finalMap);
                 bestVal = Math.min(value, bestVal);
-                beta = Math.min(bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()), beta);
-//                if (beta <= alpha){
-//                    //System.out.println("Detective break");
-//                    break;
-//                }
+                // beta = Math.min(bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()), beta);
+                // if (beta <= alpha){
+                //     System.out.println("Detective break");
+                //     break;
+                // }
             }
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
             }
-            return bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());
+            return bestVal + Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));
         }
     }
 
@@ -239,8 +251,8 @@ public class MyAi3 implements Ai {
                     return move.destination2;
                 }
             });
-            if (!(mrXMoves.isEmpty()) && (moves.size() > 1)) {
-                if (!(destination == mrXMoves.get(mrXMoves.size() - 1).source())) {
+            if (!(mrXMoves.isEmpty())) {
+                if (!(destination == mrXMoves.get(mrXMoves.size() - 1).source()) || !(moves.size() > 1)) {
                     returnMoves.add(individualMove);
                 }
             }
