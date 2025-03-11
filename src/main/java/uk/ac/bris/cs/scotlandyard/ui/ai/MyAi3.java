@@ -128,7 +128,7 @@ public class MyAi3 implements Ai {
         if (tempPlayers.isEmpty()) { // leaf node
             //Detective lastPiece = (Detective) gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1);
             Detective lastPiece = (Detective) mover;
-            return dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get());
+            return Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get()));
         }
 
         //System.out.println(mover);
@@ -182,7 +182,7 @@ public class MyAi3 implements Ai {
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
                 //System.out.println(mover);
-                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they dont have moves just return the distance to them.
+                return Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));// if they dont have moves just return the distance to them.
             }
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
@@ -198,7 +198,7 @@ public class MyAi3 implements Ai {
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
             }
-            return bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());
+            return bestVal + Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));
         }
     }
 

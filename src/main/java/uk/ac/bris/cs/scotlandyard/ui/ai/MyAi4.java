@@ -115,53 +115,6 @@ public class MyAi4 implements Ai {
 
 	}
 
-	public static void miniMaxGraph(Board.GameState gameState, ArrayList<Move> moves, Map<Integer, Double> dijkstraResult, Piece mover, MutableValueGraph<Board.GameState, Move> graph, ArrayList<Piece> playerRemainingList) {
-		ArrayList<Piece> tempRemainingList = new ArrayList<>(playerRemainingList);
-		Board.GameState newState = null;
-		ArrayList<Move> filteredMoves = new ArrayList<>();
-		double totalDistances = 0;
-		// initiate mrX moves into graph.
-		if (!tempRemainingList.isEmpty()) { // final go is length 1
-			tempRemainingList.remove(mover);// remove mover from playerRemainingList
-			if (mover.isMrX()){
-				for (Piece detectivePiece : tempRemainingList) {
-					if (detectivePiece.isMrX()) {
-						break;
-					}
-					if (detectivePiece.isDetective()) {
-						totalDistances += dijkstraResult.get(gameState.getDetectiveLocation((Detective) detectivePiece).get());
-					}
-				}
-				if (totalDistances <= gameState.getPlayers().size() * 2) {
-					filteredMoves = Filter.doubleOrSingleFilter(moves, false);
-					// System.out.println(filteredMoves);
-				}
-				if ((totalDistances > gameState.getPlayers().size() * 2) || filteredMoves.isEmpty()){
-					filteredMoves = Filter.doubleOrSingleFilter(moves, true);
-				}
-			}
-			if (mover.isDetective()) {
-				filteredMoves = moves;
-			}
-			//eliminateMoves(moves,false)
-			if (filteredMoves.isEmpty()){
-				System.out.println("hello");
-			}
-			for (Move move : filteredMoves) {
-				if (move.commencedBy() == mover) {
-					newState = gameState.advance(move); // new state with move used
-					graph.addNode(newState); // add this to the graph
-					graph.putEdgeValue(gameState, newState, move);
-					// connect to the root node
-					if (!tempRemainingList.isEmpty()) {
-						ArrayList<Move> newMoves = new ArrayList<Move>(newState.getAvailableMoves().asList());
-						miniMaxGraph(newState, Filter.duplicatePruning(newMoves), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
-					}
-				}
-			}
-		}
-	}
-
 	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, ArrayListMultimap<Double, Board.GameState> finalMap) {
 		double bestVal = 0;
 		double value = 0;
