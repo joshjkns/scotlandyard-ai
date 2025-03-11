@@ -41,11 +41,10 @@ public class MCTSTest implements Ai {
         public Node bestUCT() {
             Node chosen = null;
             double bestUCT = Double.NEGATIVE_INFINITY;
-            double nodeUCTValue = Double.NEGATIVE_INFINITY;
             for (Node child : children) {
-                if (child.visits != 0) {
-                    nodeUCTValue = child.value / child.visits + Math.sqrt(2 * Math.log(this.visits) / child.visits);
-                }
+                if (child.visits == 0) return child;
+                double nodeUCTValue = child.value / child.visits + Math.sqrt(2 * Math.log(this.visits) / child.visits);
+
                 if (nodeUCTValue > bestUCT) {
                     bestUCT = nodeUCTValue;
                     chosen = child;
@@ -75,12 +74,15 @@ public class MCTSTest implements Ai {
                 return this;
             }
 
-            int possibleMovesSize = possibleMoves.size();
+            List<Move> availableMoves = new ArrayList<>(possibleMoves);
+            int possibleMovesSize = availableMoves.size();
 
             Random random = new Random();
             int randomMoveIndex = random.nextInt(possibleMovesSize);
 
-            Move move = possibleMoves.remove(randomMoveIndex);
+            Move move = availableMoves.get(randomMoveIndex);
+            possibleMoves.remove(move);
+
             Board.GameState newState = state.advance(move);
 
             int newMrXLocation = this.mrXLocation;
@@ -121,11 +123,11 @@ public class MCTSTest implements Ai {
         Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
         Node root = new Node (gameState,null, location, null);
-        return search(root, 2000);
+        System.out.println("Moved");
+        return search(root, 2000000);
     }
 
     public static boolean hasWinner(Node node) {
-        if (node == null || node.state == null) return false;
         return (!node.state.getWinner().isEmpty());
     }
 
@@ -137,13 +139,28 @@ public class MCTSTest implements Ai {
     public Move search(Node root, int iterations) {
         int currentIterations = 0;
 
+        ArrayList<Move> rootMoves = new ArrayList<>(root.state.getAvailableMoves().asList());
+        rootMoves = Filter.duplicatePruning(rootMoves);
+
+        // initialise all moves off the root node - MrX moves basically
+        for (Move move : rootMoves) {
+            Board.GameState newState = root.state.advance(move);
+            int newMrXLocation = root.mrXLocation;
+            if (move.commencedBy().isMrX()) {
+                newMrXLocation = getMrXLocationFromMove(move);
+            }
+            Node child = new Node(newState, root, newMrXLocation, move);
+            root.children.add(child);
+        }
+
         while (currentIterations < iterations) {
-            System.out.println(currentIterations);
             Node leaf = traverse(root);
             double value = playMove(leaf);
             backpropagate(leaf, value);
             currentIterations++;
         }
+        System.out.println(currentIterations);
+
         return getMove(root);
     }
 
@@ -196,22 +213,21 @@ public class MCTSTest implements Ai {
     // final move pick function
     public Move getMove(Node root) {
         Node bestChild = null;
-        double bestValue = -1;
+        double bestValue = Double.NEGATIVE_INFINITY;
         for (Node child : root.children) {
-            if (child.value > bestValue) {
-                bestValue = child.value;
+            if (child.visits > bestValue) {
+                bestValue = child.visits;
                 bestChild = child;
             }
         }
+        ArrayList<Move> moves = new ArrayList<>(root.state.getAvailableMoves());
+
         if (bestChild == null) {
-            ArrayList<Move> moves = new ArrayList<>(root.state.getAvailableMoves().asList());
             if (!moves.isEmpty()) {
                 return moves.get(new Random().nextInt(moves.size()));
             }
             return null;
         }
-
-        ArrayList<Move> moves = new ArrayList<>(root.state.getAvailableMoves());
 
         for (Move move : moves) {
             if (bestChild.move == move) {
@@ -227,18 +243,16 @@ public class MCTSTest implements Ai {
         int mrXcurrentLocation = node.mrXLocation;
 
         int depth = 0;
-        int maxDepth = 100;
+        int maxDepth = 50;
 
-        while (state.getWinner().isEmpty() && depth < maxDepth) {
+        // loop through until win or until you reach the max depth
+        while (state.getWinner().isEmpty() || depth < maxDepth) {
             ArrayList<Move> possibleMoves = new ArrayList<>(state.getAvailableMoves().asList());
             if (possibleMoves.isEmpty()) break;
 
-            // need to pick best detective moves and then best of those
-
-//            Random random = new Random();
-//            int randomInt = random.nextInt(possibleMoves.size());
-//            Move move = possibleMoves.get(randomInt);
-            Move move = bestMoveBasedOnClosestDetective(state, possibleMoves, mrXcurrentLocation);
+            Move move = null;
+            int random = new Random().nextInt(possibleMoves.size());
+            move = possibleMoves.get(random);
 
             state = state.advance(move);
             if (move.commencedBy().isMrX()) mrXcurrentLocation = getMrXLocationFromMove(move);
@@ -251,9 +265,9 @@ public class MCTSTest implements Ai {
     public double getValue(Board.GameState state, int mrXLocation) {
         if (!state.getWinner().isEmpty()) {
             if (state.getWinner().contains(Piece.MrX.MRX)) {
-                return 1000; // mrx wins
+                return 50; // mrx wins
             } else {
-                return -1000; // mrx loses
+                return -50; // mrx loses
             }
         }
 

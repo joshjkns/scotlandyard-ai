@@ -1,7 +1,6 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
-import javax.naming.directory.InitialDirContext;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -62,10 +61,8 @@ class AiThread extends Thread {
           }
       }
       value = MTNoGraphAi.miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, Filter.duplicatePruning(newMoveList), alpha, beta, finalMap);
-      //if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) {
       mapValue = value;
       bestMove = move;
-      //}
   }
 }
 
@@ -208,7 +205,7 @@ public class MTNoGraphAi implements Ai {
                     //if (tempPlayers.size() > 4) {
                     AiThread newThread = new AiThread(finalMap, move, gameState, tempPlayers, dijkstraResult, alpha, beta);
                     newThread.start();
-                    threads.add(newThread); //put outside the loop
+                    threads.add(newThread); // put outside the loop
                     //}
                 }
                 for (AiThread IndividualThread : threads) {
@@ -218,10 +215,11 @@ public class MTNoGraphAi implements Ai {
                         System.out.println(e);
                     }
                 }
-                for (AiThread IndividualThread2 : threads){
-                    finalMap.put(IndividualThread2.mapValue, IndividualThread2.bestMove);
-                    bestVal = Math.max(IndividualThread2.mapValue,bestVal);
+                for (AiThread IndividualThread : threads){
+                    finalMap.put(IndividualThread.mapValue, IndividualThread.bestMove);
+                    bestVal = Math.max(IndividualThread.mapValue,bestVal);
                 }
+                System.out.println(threads.size());
             }
             else {
                 for (Move move : moveList) {
@@ -247,7 +245,6 @@ public class MTNoGraphAi implements Ai {
                             newMoveList.addAll(Filter.filterIrrelevantMovesV2(newMoves, individualDetectivePiece, dijkstraResult));
                         }
                     }
-
                     value = miniMax(tempDijkstraResult, tempPlayers, newState, Filter.duplicatePruning(newMoveList), alpha, beta, finalMap);
                     //if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
                     bestVal = Math.max(value, bestVal);
@@ -269,11 +266,11 @@ public class MTNoGraphAi implements Ai {
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
                 value = miniMax(dijkstraResult, tempPlayers, newState, Filter.duplicatePruning(newMoves), alpha, beta, finalMap);
                 bestVal = Math.min(value, bestVal);
-                // beta = Math.min(bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()), beta);
-                // if (beta <= alpha){
-                //     System.out.println("Detective break");
-                //     break;
-                // }
+//                 beta = Math.min(bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()), beta);
+//                 if (beta <= alpha){
+//                     System.out.println("Detective break");
+//                     break;
+//                 }
             }
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
