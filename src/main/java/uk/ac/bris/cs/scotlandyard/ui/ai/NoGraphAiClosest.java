@@ -126,17 +126,17 @@ public class NoGraphAiClosest implements Ai {
         if (mover.isMrX()) {
             bestVal = Double.NEGATIVE_INFINITY;
 
-            double detectiveTotal = 0;
+            double detectiveTotal = Double.POSITIVE_INFINITY;
             ArrayList<Move> moveList = new ArrayList<>(moves);
             for (Piece detective : gameState.getPlayers()) {
                 if (detective.isDetective()) {
-                    detectiveTotal += dijkstraResult.get(gameState.getDetectiveLocation((Detective) detective).get());
+                    detectiveTotal = Math.min(detectiveTotal, dijkstraResult.get(gameState.getDetectiveLocation((Detective) detective).get()));
                 }
             }
-            if (detectiveTotal <= gameState.getPlayers().size() * 2) {
+            if (detectiveTotal <= 1) {
                 moveList = Filter.doubleOrSingleFilter(moves, false);
             }
-            if (detectiveTotal > gameState.getPlayers().size() * 2 || (moveList.isEmpty())) {
+            if (detectiveTotal > 1 || (moveList.isEmpty())) {
                 moveList = Filter.doubleOrSingleFilter(moves, true);
             }
 
