@@ -55,8 +55,13 @@ class AiThread extends Thread {
           }
       });
       ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-
-      value = MTNoGraphAi.miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, Filter.duplicatePruning(newMoves), alpha, beta, finalMap);
+      ArrayList<Move> newMoveList = new ArrayList<>();
+      for (Piece individualDetectivePiece : gameState.getPlayers().asList()){
+          if (individualDetectivePiece.isDetective()){
+              newMoveList.addAll(Filter.filterIrrelevantMovesV2(newMoves,individualDetectivePiece,dijkstraResult));
+          }
+      }
+      value = MTNoGraphAi.miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, Filter.duplicatePruning(newMoveList), alpha, beta, finalMap);
       //if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) {
       mapValue = value;
       bestMove = move;
@@ -114,9 +119,11 @@ public class MTNoGraphAi implements Ai {
         //System.out.println(movesMultimap);
 
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
+        playerList.add(MrX.MRX);
+        playerList.add(Piece.Detective.RED);
 
         ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
-        newMoves = noRepeatMoves(newMoves);
+        //newMoves = noRepeatMoves(newMoves);
         Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, location);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
         double bestVal = miniMax(dijkstraResult, playerList, gameState, newMoves, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, finalMap);
@@ -169,7 +176,7 @@ public class MTNoGraphAi implements Ai {
         if (tempPlayers.isEmpty()) { // leaf node
             //Detective lastPiece = (Detective) gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1);
             Detective lastPiece = (Detective) mover;
-            return Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get()));
+            return dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get());
         }
 
         //System.out.println(mover);
@@ -189,35 +196,63 @@ public class MTNoGraphAi implements Ai {
             if ((detectiveTotal > gameState.getPlayers().size() * 2) || (moveList.isEmpty())) {
                 moveList = Filter.doubleOrSingleFilter(moves, true);
             }
+
             boolean stillContainsMrx = false;
             for (Piece individualPiece : tempPlayers){
                 if (individualPiece.isMrX()){
                     stillContainsMrx = true;
                 }
             }
-//            if (!stillContainsMrx) {
-//                System.out.println("hellow");
-//            }
-
-            for (Move move : moveList) {
-                //if (tempPlayers.size() > 4) {
-                AiThread newThread = new AiThread(finalMap, move, gameState, tempPlayers, dijkstraResult, alpha, beta);
-                newThread.start();
-                threads.add(newThread); //put outside the loop
-                //}
-            }
-            for (AiThread IndividualThread : threads) {
-                try{
-                    IndividualThread.join();
-                } catch (InterruptedException e) {
-                    System.out.println(e);
+            if (stillContainsMrx) {
+                for (Move move : moveList) {
+                    //if (tempPlayers.size() > 4) {
+                    AiThread newThread = new AiThread(finalMap, move, gameState, tempPlayers, dijkstraResult, alpha, beta);
+                    newThread.start();
+                    threads.add(newThread); //put outside the loop
+                    //}
+                }
+                for (AiThread IndividualThread : threads) {
+                    try{
+                        IndividualThread.join();
+                    } catch (InterruptedException e) {
+                        System.out.println(e);
+                    }
+                }
+                for (AiThread IndividualThread2 : threads){
+                    finalMap.put(IndividualThread2.mapValue, IndividualThread2.bestMove);
+                    bestVal = Math.max(IndividualThread2.mapValue,bestVal);
                 }
             }
-            for (AiThread IndividualThread2 : threads){
-                finalMap.put(IndividualThread2.mapValue, IndividualThread2.bestMove);
-                bestVal = Math.max(IndividualThread2.mapValue,bestVal);
-            }
+            else {
+                for (Move move : moveList) {
+                    Board.GameState newState = gameState.advance(move);
+                    int destination = move.accept(new Move.Visitor<Integer>() {
+                        @Override
+                        public Integer visit(Move.SingleMove move) {
+                            return move.destination;
+                        }
 
+                        @Override
+                        public Integer visit(Move.DoubleMove move) {
+                            return move.destination2;
+                        }
+                    });
+                    ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
+                    //newMoves = Filter.duplicatePruning(newMoves);
+                    Map<Integer, Double> tempDijkstraResult = Dijkstra.dijkstraFunction(newState, destination);
+
+                    ArrayList<Move> newMoveList = new ArrayList<>();
+                    for (Piece individualDetectivePiece : gameState.getPlayers().asList()) {
+                        if (individualDetectivePiece.isDetective()) {
+                            newMoveList.addAll(Filter.filterIrrelevantMovesV2(newMoves, individualDetectivePiece, dijkstraResult));
+                        }
+                    }
+
+                    value = miniMax(tempDijkstraResult, tempPlayers, newState, Filter.duplicatePruning(newMoveList), alpha, beta, finalMap);
+                    //if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
+                    bestVal = Math.max(value, bestVal);
+                }
+            }
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
             }
@@ -227,7 +262,7 @@ public class MTNoGraphAi implements Ai {
             bestVal = Double.POSITIVE_INFINITY;
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
-                return Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));// if they dont have moves just return the distance to them.
+                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they dont have moves just return the distance to them.
             }
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
@@ -243,7 +278,7 @@ public class MTNoGraphAi implements Ai {
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
             }
-            return bestVal + Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));
+            return bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());
         }
     }
 
