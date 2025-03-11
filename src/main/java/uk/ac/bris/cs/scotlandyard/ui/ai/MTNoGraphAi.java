@@ -1,6 +1,7 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
+import javax.naming.directory.InitialDirContext;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -56,17 +57,16 @@ class AiThread extends Thread {
       ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
 
       value = MTNoGraphAi.miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, Filter.duplicatePruning(newMoves), alpha, beta, finalMap);
-      if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) {
-          mapValue = value;
-          bestMove = move;
-      }
+      //if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) {
+      mapValue = value;
+      bestMove = move;
+      //}
   }
 }
 
 public class MTNoGraphAi implements Ai {
 
     ArrayList<Move> mrXMoves = new ArrayList<>();
-    ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
 
 
     @Nonnull @Override public String name() { return "[MRX] MT (No Graph)"; }
@@ -147,7 +147,7 @@ public class MTNoGraphAi implements Ai {
 
         }
 
-        //System.out.println(finalMap);
+        System.out.println(finalMap);
         mrXMoves.add(chosenMove);
         assert chosenMove != null;
         return chosenMove;
@@ -158,7 +158,7 @@ public class MTNoGraphAi implements Ai {
         double bestVal = 0;
         double value = 0;
         ArrayList<Piece> tempPlayers = new ArrayList<>(players);
-        ArrayList<Move> trialMoves = new ArrayList<>();
+        ArrayList<AiThread> threads = new ArrayList<>();
 
         Piece mover = tempPlayers.get(0); // remove current player
         //tempPlayers.remove(0);
@@ -186,17 +186,38 @@ public class MTNoGraphAi implements Ai {
             if (detectiveTotal <= gameState.getPlayers().size() * 2) {
                 moveList = Filter.doubleOrSingleFilter(moves, false);
             }
-            if (detectiveTotal > gameState.getPlayers().size() * 2) {
+            if ((detectiveTotal > gameState.getPlayers().size() * 2) || (moveList.isEmpty())) {
                 moveList = Filter.doubleOrSingleFilter(moves, true);
             }
+            boolean stillContainsMrx = false;
+            for (Piece individualPiece : tempPlayers){
+                if (individualPiece.isMrX()){
+                    stillContainsMrx = true;
+                }
+            }
+//            if (!stillContainsMrx) {
+//                System.out.println("hellow");
+//            }
 
             for (Move move : moveList) {
-              if (tempPlayers.size() > 4) {
-                  AiThread newThread = new AiThread(finalMap, move, gameState, tempPlayers, dijkstraResult, alpha, beta);
-                  newThread.start();
-                  finalMap.put(newThread.mapValue,newThread.bestMove);
-              }
+                //if (tempPlayers.size() > 4) {
+                AiThread newThread = new AiThread(finalMap, move, gameState, tempPlayers, dijkstraResult, alpha, beta);
+                newThread.start();
+                threads.add(newThread); //put outside the loop
+                //}
             }
+            for (AiThread IndividualThread : threads) {
+                try{
+                    IndividualThread.join();
+                } catch (InterruptedException e) {
+                    System.out.println(e);
+                }
+            }
+            for (AiThread IndividualThread2 : threads){
+                finalMap.put(IndividualThread2.mapValue, IndividualThread2.bestMove);
+                bestVal = Math.max(IndividualThread2.mapValue,bestVal);
+            }
+
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
             }
@@ -206,7 +227,6 @@ public class MTNoGraphAi implements Ai {
             bestVal = Double.POSITIVE_INFINITY;
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
-                //System.out.println(mover);
                 return Math.pow(Math.E, 0.05 * dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));// if they dont have moves just return the distance to them.
             }
             for (Move move : moveList) {
