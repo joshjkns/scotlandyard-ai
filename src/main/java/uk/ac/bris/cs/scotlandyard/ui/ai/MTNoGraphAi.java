@@ -61,6 +61,7 @@ class AiThread extends Thread {
           }
       }
       value = MTNoGraphAi.miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, Filter.duplicatePruning(newMoveList), alpha, beta, finalMap);
+      System.out.println(value);
       mapValue = value;
       bestMove = move;
   }
@@ -248,6 +249,9 @@ public class MTNoGraphAi implements Ai {
                     value = miniMax(tempDijkstraResult, tempPlayers, newState, Filter.duplicatePruning(newMoveList), alpha, beta, finalMap);
                     //if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
                     bestVal = Math.max(value, bestVal);
+                    if (bestVal == Double.NEGATIVE_INFINITY){
+                        bestVal = 0;
+                    }
                 }
             }
             if (tempPlayers.size() == 1) {
