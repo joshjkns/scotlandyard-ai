@@ -66,7 +66,7 @@ public class NoGraphAiTotal implements Ai {
         //playerList.add(MrX.MRX);
         //playerList.add(Piece.Detective.RED);
 
-        ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
+        ArrayList<Move> newMoves = Filter.duplicatePruning(moves, Piece.MrX.MRX);
         newMoves = noRepeatMoves(newMoves);
         Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, location);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
@@ -165,7 +165,7 @@ public class NoGraphAiTotal implements Ai {
                 }
 
                 System.out.println(newMoves);
-                value = miniMax(tempDijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoveList), alpha, beta);
+                value = miniMax(tempDijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoveList, tempPlayers.get(0)), alpha, beta);
                 if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
                 bestVal = Math.max(value, bestVal);
 //                alpha = Math.max(bestVal, alpha);
@@ -184,12 +184,12 @@ public class NoGraphAiTotal implements Ai {
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
                 //System.out.println(mover);
-                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they dont have moves just return the distance to them.
+                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they don't have moves just return the distance to them.
             }
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves), alpha, beta);
+                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves, tempPlayers.get(0)), alpha, beta);
                 bestVal = Math.min(value, bestVal);
                 beta = Math.min(bestVal + dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()), beta);
 //                if (beta <= alpha){

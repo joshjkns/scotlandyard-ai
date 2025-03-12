@@ -66,7 +66,7 @@ public class NoGraphAiUnused implements Ai {
         }
 
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
-        ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
+        ArrayList<Move> newMoves = Filter.duplicatePruning(moves, Piece.MrX.MRX);
         Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, source);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
         double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves);
@@ -153,7 +153,7 @@ public class NoGraphAiUnused implements Ai {
                     }
                 });
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves));
+                value = miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves, tempPlayers.get(0)));
                 finalMap.put(value, move);
                 bestVal = Math.max(value, bestVal);
             }
@@ -169,7 +169,7 @@ public class NoGraphAiUnused implements Ai {
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves));
+                value = miniMax(dijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves, tempPlayers.get(0)));
 
                 bestVal = Math.min(value, bestVal);
             }

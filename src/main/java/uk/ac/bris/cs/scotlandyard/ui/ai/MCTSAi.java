@@ -19,17 +19,19 @@ public class MCTSAi implements Ai {
         double value;
         ArrayList<Move> possibleMoves;
         int mrXLocation;
+        Piece mover;
         private final Move move;
 
         // constructor for a node
-        public Node(Board.GameState state, Node parent, int mrXLocation, Move move) {
+        public Node(Board.GameState state, Node parent, int mrXLocation, Move move, Piece mover) {
             this.state = state;
             this.parent = parent;
             this.children = new ArrayList<>();
             this.possibleMoves = new ArrayList<>(state.getAvailableMoves().asList());
-            this.possibleMoves = Filter.duplicatePruning(possibleMoves);
+            this.possibleMoves = Filter.duplicatePruning(possibleMoves, mover);
             this.visits = 0;
             this.value = 0;
+            this.mover = mover;
             this.mrXLocation = mrXLocation;
             this.move = move;
         }
@@ -87,7 +89,7 @@ public class MCTSAi implements Ai {
             if (move.commencedBy().isMrX()) {
                 newMrXLocation = getMrXLocationFromMove(move);
             }
-            Node child = new Node(newState, this, newMrXLocation, move);
+            Node child = new Node(newState, this, newMrXLocation, move, move.commencedBy());
             children.add(child);
             return child;
         }
@@ -120,8 +122,8 @@ public class MCTSAi implements Ai {
         }
         Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
-        Node root = new Node (gameState,null, location, null);
-        return mcts(root, 1000000);
+        Node root = new Node (gameState,null, location, null, Piece.MrX.MRX);
+        return mcts(root, 1000);
     }
 
     public static boolean hasWinner(Node node) {
@@ -137,7 +139,6 @@ public class MCTSAi implements Ai {
         int currentIterations = 0;
 
         ArrayList<Move> rootMoves = new ArrayList<>(root.state.getAvailableMoves().asList());
-        rootMoves = Filter.duplicatePruning(rootMoves);
 
         // initialise all moves off the root node - MrX moves basically
         for (Move move : rootMoves) {
@@ -146,7 +147,7 @@ public class MCTSAi implements Ai {
             if (move.commencedBy().isMrX()) {
                 newMrXLocation = getMrXLocationFromMove(move);
             }
-            Node child = new Node(newState, root, newMrXLocation, move);
+            Node child = new Node(newState, root, newMrXLocation, move, move.commencedBy());
             root.children.add(child);
         }
 

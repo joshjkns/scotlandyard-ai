@@ -62,11 +62,11 @@ public class MTGraphAi implements Ai {
 		MutableValueGraph<Board.GameState, Move> graph = ValueGraphBuilder.directed().allowsSelfLoops(false).build();
 		graph.addNode(gameState); // add root node
 
-		MutableValueGraph<Board.GameState, Move> normGraph = ValueGraphBuilder.directed().allowsSelfLoops(false).build();
-		normGraph.addNode(gameState); // add root node
+//		MutableValueGraph<Board.GameState, Move> normGraph = ValueGraphBuilder.directed().allowsSelfLoops(false).build();
+//		normGraph.addNode(gameState); // add root nodes
 
 		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
-		ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
+		ArrayList<Move> newMoves = Filter.duplicatePruning(moves, Piece.MrX.MRX);
 		newMoves = noRepeatMoves(newMoves);
 		Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, source);
 		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
