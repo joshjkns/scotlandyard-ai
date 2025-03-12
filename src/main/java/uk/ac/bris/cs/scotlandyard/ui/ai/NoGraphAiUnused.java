@@ -67,13 +67,13 @@ public class NoGraphAiUnused implements Ai {
 
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
         ArrayList<Move> newMoves = Filter.duplicatePruning(moves, Piece.MrX.MRX);
-        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, source);
+        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState.getSetup().graph, source);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
         double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves);
 
         Move chosenMove = null;
         double maxDistance = -1;
-        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState, lastLocation); // dijkstra called on prev location of mrX
+        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation); // dijkstra called on prev location of mrX
         for (Move tempMove : finalMap.get(bestVal)) { // looping through the potential duplicate value moves
             if (maxDistance == -1) { // assign chosenMove to tempMove to prevent null.
                 chosenMove = tempMove;
@@ -153,7 +153,7 @@ public class NoGraphAiUnused implements Ai {
                     }
                 });
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                value = miniMax(Dijkstra.dijkstraFunction(newState,destination), tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves, tempPlayers.get(0)));
+                value = miniMax(Dijkstra.dijkstraFunction(newState.getSetup().graph, destination), tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoves, tempPlayers.get(0)));
                 finalMap.put(value, move);
                 bestVal = Math.max(value, bestVal);
             }

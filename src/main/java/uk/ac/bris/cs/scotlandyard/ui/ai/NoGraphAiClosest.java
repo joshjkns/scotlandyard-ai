@@ -68,13 +68,13 @@ public class NoGraphAiClosest implements Ai {
 
         ArrayList<Move> newMoves = Filter.duplicatePruning(moves, Piece.MrX.MRX);
         newMoves = noRepeatMoves(newMoves);
-        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, location);
+        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState.getSetup().graph, location);
         ArrayListMultimap<Double, Move> finalMap = ArrayListMultimap.create();
         double bestVal = miniMax(dijkstraResult, playerList, gameState, finalMap, newMoves, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
 
         Move chosenMove = null;
         double maxDistance = -1;
-        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState, lastLocation);
+        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation);
         for (Move tempMove : finalMap.get(bestVal)) {
             if (maxDistance == -1) {
                 chosenMove = tempMove;
@@ -156,7 +156,7 @@ public class NoGraphAiClosest implements Ai {
                 });
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
                 //newMoves = Filter.duplicatePruning(newMoves);
-                Map<Integer,Double> tempDijkstraResult = Dijkstra.dijkstraFunction(newState,destination);
+                Map<Integer,Double> tempDijkstraResult = Dijkstra.dijkstraFunction(newState.getSetup().graph, destination);
 
                 ArrayList<Move> newMoveList = new ArrayList<>();
                 for (Piece individualDetectivePiece : gameState.getPlayers().asList()){
