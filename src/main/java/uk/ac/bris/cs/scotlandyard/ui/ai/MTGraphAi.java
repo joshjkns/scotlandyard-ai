@@ -68,7 +68,7 @@ public class MTGraphAi implements Ai {
 		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
 		ArrayList<Move> newMoves = Filter.duplicatePruning(moves, Piece.MrX.MRX);
 		newMoves = noRepeatMoves(newMoves);
-		Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, source);
+		Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState.getSetup().graph, source);
 		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
 		Graph.miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
 		// miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, normGraph, playerRemainingList);
@@ -76,7 +76,7 @@ public class MTGraphAi implements Ai {
 
 		Move chosenMove = null;
 		double maxDistance = -1;
-		Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState, lastLocation);
+		Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation);
 		for (Board.GameState tempState : finalMap.get(bestVal)) {
 			Move tempMove = graph.edgeValue(gameState, tempState).get();
 			if (maxDistance == -1) {
@@ -150,7 +150,7 @@ public class MTGraphAi implements Ai {
 							return move.destination2;
 						}
 					});
-					Map<Integer, Double> dijkstraResultInput = Dijkstra.dijkstraFunction(child, destination);
+					Map<Integer, Double> dijkstraResultInput = Dijkstra.dijkstraFunction(child.getSetup().graph, destination);
 					value = miniMax(child, graph, alpha, beta, dijkstraResultInput, tempRemainingList, finalMap);
 					bestVal = Math.max(bestVal, value);
 					finalMap.put(value, child);
@@ -184,6 +184,7 @@ public class MTGraphAi implements Ai {
 		}
 		return bestVal;
 	}
+
 	public ArrayList<Move> noRepeatMoves(ArrayList<Move> moves){
 		ArrayList<Move> returnMoves = new ArrayList<>();
 		for (Move individualMove : moves){

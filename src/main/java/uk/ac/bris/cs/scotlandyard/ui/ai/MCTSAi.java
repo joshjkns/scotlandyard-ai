@@ -275,7 +275,7 @@ public class MCTSAi implements Ai {
 
     // closest detective to mrx - considering one not all.
     public double closestDetectiveDistance(Board.GameState state, int mrXLocation) {
-        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(state, mrXLocation);
+        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(state.getSetup().graph, mrXLocation);
         double closestDistance = Double.POSITIVE_INFINITY;
         // just loop through and keep track of the closest distance
         for (Piece piece : state.getPlayers()) {

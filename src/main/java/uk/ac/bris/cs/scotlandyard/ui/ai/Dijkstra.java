@@ -10,8 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 class Dijkstra {
-    public static Map<Integer, Double> dijkstraFunction(Board.GameState board, int source){
-        ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> valueGraph = board.getSetup().graph;
+    public static Map<Integer, Double> dijkstraFunction(ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> valueGraph, int source){
         Map<Integer, Double> distances = new HashMap<>();
         Map<Integer, Boolean> visited = new HashMap<>();
 
