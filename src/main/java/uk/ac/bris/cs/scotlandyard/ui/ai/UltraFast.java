@@ -123,14 +123,16 @@ public class UltraFast implements Ai {
             System.out.println("MOVE: " + child.move + "VALUE: " + child.value);
             if (child.value > maxVal) {
                 bestMove = child.move;
+                maxVal = child.value;
             }
         }
-
+        System.out.println(bestMove);
         return bestMove;
     }
 
     public void initialiseRootWithMrX(Node root, Board board) {
         ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
+        filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
         for (Move mrXMove : filteredMoves) {
             Board.GameState newState = root.state.advance(mrXMove);
             Node child = new Node(newState, root, mrXMove, 0);
@@ -145,11 +147,12 @@ public class UltraFast implements Ai {
             if (newState.getWinner().isEmpty()) newState = newState.advance(move);
         }
         ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(newState.getAvailableMoves().asList()), Piece.MrX.MRX);
+        filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
         for (Move mrXMove : filteredMoves) { // from the newest state get all mrx moves and advance, create a child and add to its parent
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, node.value);
             node.children.add(child);
-            if (depth < 2) {
+            if (depth < 3) {
                 buildAllChildren(child, depth + 1);
             } else { // leaf node
                 backpropagateValues(child);
