@@ -26,7 +26,7 @@ import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.readGraph;
 
 public class UltraFast implements Ai {
 
-    class Node {
+    public class Node {
         Board.GameState state;
         Move move;
         double value;
@@ -35,7 +35,7 @@ public class UltraFast implements Ai {
         ArrayList<Node> children;
         int location;
 
-        public Node (Board.GameState state, Node parent, Move move, double value) {
+        public Node(Board.GameState state, Node parent, Move move, double value) {
             this.state = state;
             this.parent = parent;
             this.move = move;
@@ -112,12 +112,18 @@ public class UltraFast implements Ai {
         // initialise mrX first set of moves off of root;
         initialiseRootWithMrX(root, board);
 
+        // build all subsequent states from each mrx (root) node
+        for (Node child : root.children) {
+            buildAllChildren(child, 0);
+        }
+        printTree(root);
 
         return null;
     }
 
     public void initialiseRootWithMrX(Node root, Board board) {
-        for (Move mrXMove : board.getAvailableMoves()) {
+        ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
+        for (Move mrXMove : filteredMoves) {
             Board.GameState newState = root.state.advance(mrXMove);
             Node child = new Node(newState, root, mrXMove, 0);
             root.children.add(child);
@@ -125,9 +131,25 @@ public class UltraFast implements Ai {
     }
 
     public void buildAllChildren(Node node, int depth) {
-        if (depth < 5) {
+        ArrayList<Move> bestMoveList = bestArrayOfMoves(node);
+        Board.GameState newState = node.state;
+        for (Move move : bestMoveList) { // advances 5x for the detectives
+            if (newState.getWinner().isEmpty()) newState = newState.advance(move);
+        }
+        ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(newState.getAvailableMoves().asList()), Piece.MrX.MRX);
+        for (Move mrXMove : filteredMoves) { // from the newest state get all mrx moves and advance, create a child and add to its parent
+            Board.GameState mrXState = newState.advance(mrXMove);
+            Node child = new Node(mrXState, node, mrXMove, node.value);
+            node.children.add(child);
+            if (depth < 2) buildAllChildren(child, depth + 1);
+        }
+
+    }
+
+    public void printTree(Node node) {
+        if (!(node.children.isEmpty())) {
             for (Node child : node.children) {
-                buildAllChildren(child, depth + 1);
+                printTree(child);
             }
         }
     }
@@ -149,7 +171,6 @@ public class UltraFast implements Ai {
             Move move = getMoveFromInteger(detectives.get(i), bestList.get(i), node.possibleMoves);
             resultList.add(move);
         }
-        System.out.println(resultList);
         return resultList;
     }
 
@@ -158,8 +179,8 @@ public class UltraFast implements Ai {
         for (Piece piece : node.state.getPlayers()) {
             if (piece.isDetective()) {
                 Set<Integer> intList = new HashSet<>();
-                for (Move move : node.state.getAvailableMoves()) {
-                    System.out.println(piece + " " + move.commencedBy());
+                ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(node.state.getAvailableMoves().asList()), piece);
+                for (Move move : filteredMoves) {
                     if (piece == move.commencedBy()) {
                         Move.SingleMove singleMove = (Move.SingleMove) move;
                         intList.add(singleMove.destination);
@@ -170,7 +191,6 @@ public class UltraFast implements Ai {
                 }
                 twoDList.add(intList);
             }
-            System.out.println("TWOD LIST" + twoDList);
         }
         return twoDList;
     }

@@ -75,7 +75,7 @@ public class Filter {
         Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
         for (Move move : moves) {
             if (!(move.commencedBy() == mover)) {
-                break;
+                continue; // go to next move
             }
             entry = move.accept(new Move.Visitor<Map.Entry<Integer, Boolean>>() {
                 @Override
