@@ -116,9 +116,17 @@ public class UltraFast implements Ai {
         for (Node child : root.children) {
             buildAllChildren(child, 0);
         }
-        printTree(root);
 
-        return null;
+        double maxVal = Double.NEGATIVE_INFINITY;
+        Move bestMove = null;
+        for (Node child : root.children) {
+            System.out.println("MOVE: " + child.move + "VALUE: " + child.value);
+            if (child.value > maxVal) {
+                bestMove = child.move;
+            }
+        }
+
+        return bestMove;
     }
 
     public void initialiseRootWithMrX(Node root, Board board) {
@@ -141,9 +149,19 @@ public class UltraFast implements Ai {
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, node.value);
             node.children.add(child);
-            if (depth < 2) buildAllChildren(child, depth + 1);
+            if (depth < 2) {
+                buildAllChildren(child, depth + 1);
+            } else { // leaf node
+                backpropagateValues(child);
+            }
         }
+    }
 
+    public void backpropagateValues(Node node) {
+        while (node.parent.parent != null) { // going to mrx first node NOT ROOT
+            node.value = Math.min(node.value, node.parent.value);
+            node = node.parent;
+        }
     }
 
     public void printTree(Node node) {
@@ -159,10 +177,16 @@ public class UltraFast implements Ai {
         Set<List<Integer>> combinations = Sets.cartesianProduct(twoDList);
         List<Integer> bestList = new ArrayList<>();
         double minVal = Double.POSITIVE_INFINITY;
+        Map<Integer,Double> dijkstraMap = dijkstraAll.get(node.location);
         for (List<Integer> list : combinations) {
-            double listValueDijkstra = list.stream().map(x -> (dijkstraAll.get(node.location)).get(x)).reduce(0.0, Double::sum);
-            if ((listValueDijkstra < minVal) && (Set.copyOf(list).size() == list.size())) { // checking for duplicates
+            double listValueDijkstra = 0;
+            for (int val : list) {
+                listValueDijkstra += dijkstraMap.get(val);
+            }
+            // double listValueDijkstra = list.stream().map(x -> (dijkstraAll.get(node.location)).get(x)).reduce(0.0, Double::sum);
+            if ((listValueDijkstra < minVal) && !hasDuplicates(list)) { // checking for duplicates
                 minVal = listValueDijkstra;
+                node.value = minVal;
                 bestList = list;
             }
         }
@@ -172,6 +196,16 @@ public class UltraFast implements Ai {
             resultList.add(move);
         }
         return resultList;
+    }
+
+    public static boolean hasDuplicates(List<Integer> list) {
+        Set<Object> set = new HashSet<>();
+        for (Integer val : list) {
+            if (!set.add(val)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<Set<Integer>> twoDArrayOfMoves(Node node) {
