@@ -64,7 +64,7 @@ public class GraphAi implements Ai {
 		graph.addNode(gameState); // add root node
 
 		ArrayList<Piece> playerRemainingList = new ArrayList<>(gameState.getPlayers().asList());
-		ArrayList<Move> newMoves = Filter.duplicatePruning(moves);
+		ArrayList<Move> newMoves = Filter.duplicatePruning(moves, Piece.MrX.MRX);
 		Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState, source);
 		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
 		miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
@@ -148,7 +148,7 @@ public class GraphAi implements Ai {
 					// connect to the root node
 					if (!tempRemainingList.isEmpty()) {
 						ArrayList<Move> newMoves = new ArrayList<Move>(newState.getAvailableMoves().asList());
-						miniMaxGraph(newState, Filter.duplicatePruning(newMoves), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
+						miniMaxGraph(newState, Filter.duplicatePruning(newMoves, tempRemainingList.get(0)), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
 					}
 				}
 			}

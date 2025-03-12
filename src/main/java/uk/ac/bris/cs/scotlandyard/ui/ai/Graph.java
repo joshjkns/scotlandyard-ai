@@ -34,7 +34,7 @@ class GraphThread extends Thread {
 
             if (!tempRemainingList.isEmpty()) {
                 ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves().asList());
-                Graph.miniMaxGraph(newState, Filter.duplicatePruning(newMoves), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
+                Graph.miniMaxGraph(newState, Filter.duplicatePruning(newMoves, tempRemainingList.get(0)), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
             }
         }
     }
@@ -90,7 +90,7 @@ public class Graph {
 						// connect to the root node
 						if (!tempRemainingList.isEmpty()) {
 							ArrayList<Move> newMoves = new ArrayList<Move>(newState.getAvailableMoves().asList());
-							Graph.miniMaxGraph(newState, Filter.duplicatePruning(newMoves), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
+							Graph.miniMaxGraph(newState, Filter.duplicatePruning(newMoves, tempRemainingList.get(0)), dijkstraResult, tempRemainingList.get(0), graph, tempRemainingList);
 						}
 					}
 				}
