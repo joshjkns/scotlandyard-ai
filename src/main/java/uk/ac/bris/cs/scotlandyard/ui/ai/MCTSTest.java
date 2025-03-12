@@ -212,12 +212,12 @@ public class MCTSTest implements Ai {
     // final move pick function
     public Move getMove(Node root) {
         Node bestChild = null;
-        double bestValue = Double.NEGATIVE_INFINITY;
+        double bestVal = Double.NEGATIVE_INFINITY;
 
         // ranking based on visits over values
         for (Node child : root.children) { // for child of the root node (mrx moves)
-            if (child.visits > bestValue) { // find the one that has the most visits
-                bestValue = child.visits; // that will be the bestChild / bestMove
+            if (child.visits > bestVal) { // find the one that has the most visits
+                bestVal = child.visits; // that will be the bestChild / bestMove
                 bestChild = child;
             }
         }
@@ -288,10 +288,10 @@ public class MCTSTest implements Ai {
     }
 
     // mrx distance from the detective
-    public double mrXDistance(Board.GameState state, int mrXLocation, Piece.Detective mover) {
-        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(state, mrXLocation);
-        return dijkstraResult.get(state.getDetectiveLocation(mover).get());
-    }
+//    public double mrXDistance(Board.GameState state, int mrXLocation, Piece.Detective mover) {
+//        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(state, mrXLocation);
+//        return dijkstraResult.get(state.getDetectiveLocation(mover).get());
+//    }
 
     // function to get the best moves from an array of moves
 //    public Move bestMoveBasedOnClosestDetective(Board.GameState state, ArrayList<Move> possibleMoves, int mrXLocation) {
