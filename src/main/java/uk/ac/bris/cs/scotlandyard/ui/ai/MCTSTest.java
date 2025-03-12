@@ -123,8 +123,7 @@ public class MCTSTest implements Ai {
         Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
         Node root = new Node (gameState,null, location, null);
-        System.out.println("Moved");
-        return search(root, 2000000);
+        return mcts(root, 1000000);
     }
 
     public static boolean hasWinner(Node node) {
@@ -136,7 +135,7 @@ public class MCTSTest implements Ai {
     }
 
     // main mcts function to search over n iterations and return the best move
-    public Move search(Node root, int iterations) {
+    public Move mcts(Node root, int iterations) {
         int currentIterations = 0;
 
         ArrayList<Move> rootMoves = new ArrayList<>(root.state.getAvailableMoves().asList());
@@ -153,15 +152,15 @@ public class MCTSTest implements Ai {
             root.children.add(child);
         }
 
+        // loop through iterations
         while (currentIterations < iterations) {
-            Node leaf = traverse(root);
-            double value = playMove(leaf);
-            backpropagate(leaf, value);
-            currentIterations++;
+            Node leaf = traverse(root); // get leaf node via traverse function
+            double value = playMove(leaf); // playMove function - random moves until game is over
+            backpropagate(leaf, value); // backpropagate through tree
+            currentIterations++; // iterate
         }
-        System.out.println(currentIterations);
 
-        return getMove(root);
+        return getMove(root); // get the best move and use it
     }
 
     // traverse function to traverse the tree
@@ -245,11 +244,8 @@ public class MCTSTest implements Ai {
         Board.GameState state = node.getState();
         int mrXcurrentLocation = node.mrXLocation;
 
-        int count = 0; // fixed number of moves you can look through
-        int maxMoves = 30;  // to avoid waiting for a winner in a potential long game
-
         // loop through until win or until you reach the max number of moves
-        while (state.getWinner().isEmpty() || count < maxMoves) {
+        while (state.getWinner().isEmpty()) {
             ArrayList<Move> possibleMoves = new ArrayList<>(state.getAvailableMoves().asList());
             if (possibleMoves.isEmpty()) break;
 
@@ -260,7 +256,6 @@ public class MCTSTest implements Ai {
 
             state = state.advance(move); // advance the gameState
             if (move.commencedBy().isMrX()) mrXcurrentLocation = getMrXLocationFromMove(move);
-            count++;
         }
         // return the value of the state - basically how good the state is
         return getValue(state, mrXcurrentLocation);

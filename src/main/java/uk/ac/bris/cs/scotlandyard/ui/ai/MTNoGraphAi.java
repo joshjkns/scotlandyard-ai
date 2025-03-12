@@ -219,7 +219,6 @@ public class MTNoGraphAi implements Ai {
                     finalMap.put(IndividualThread.mapValue, IndividualThread.bestMove);
                     bestVal = Math.max(IndividualThread.mapValue,bestVal);
                 }
-                System.out.println(threads.size());
             }
             else {
                 for (Move move : moveList) {
