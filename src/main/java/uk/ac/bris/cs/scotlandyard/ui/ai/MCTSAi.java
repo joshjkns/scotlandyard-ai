@@ -93,7 +93,7 @@ public class MCTSAi implements Ai {
         }
     }
 
-    @Nonnull @Override public String name() { return "[MRX] MCTS Test"; }
+    @Nonnull @Override public String name() { return "[MRX] MCTS"; }
 
     @Nonnull
     @Override
