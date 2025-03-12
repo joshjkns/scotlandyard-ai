@@ -70,7 +70,6 @@ public class MTNoGraphAi implements Ai {
 
     ArrayList<Move> mrXMoves = new ArrayList<>();
 
-
     @Nonnull @Override public String name() { return "[MRX] MT (No Graph)"; }
 
     @Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
