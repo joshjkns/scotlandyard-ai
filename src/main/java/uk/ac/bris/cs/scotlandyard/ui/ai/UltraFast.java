@@ -123,6 +123,7 @@ public class UltraFast implements Ai {
             System.out.println("MOVE: " + child.move + "VALUE: " + child.value);
             if (child.value > maxVal) {
                 bestMove = child.move;
+                maxVal = child.value;
             }
         }
 
@@ -180,13 +181,16 @@ public class UltraFast implements Ai {
         Map<Integer,Double> dijkstraMap = dijkstraAll.get(node.location);
         for (List<Integer> list : combinations) {
             double listValueDijkstra = 0;
+            double smallestVal = Double.POSITIVE_INFINITY;
             for (int val : list) {
-                listValueDijkstra += dijkstraMap.get(val);
+                double temp = dijkstraMap.get(val);
+                if (temp < smallestVal) smallestVal = temp;
+                listValueDijkstra += temp;
             }
             // double listValueDijkstra = list.stream().map(x -> (dijkstraAll.get(node.location)).get(x)).reduce(0.0, Double::sum);
             if ((listValueDijkstra < minVal) && !hasDuplicates(list)) { // checking for duplicates
                 minVal = listValueDijkstra;
-                node.value = minVal;
+                node.value = smallestVal;
                 bestList = list;
             }
         }
