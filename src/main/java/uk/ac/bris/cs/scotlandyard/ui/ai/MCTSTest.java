@@ -294,28 +294,28 @@ public class MCTSTest implements Ai {
     }
 
     // function to get the best moves from an array of moves
-    public Move bestMoveBasedOnClosestDetective(Board.GameState state, ArrayList<Move> possibleMoves, int mrXLocation) {
-        Move bestMove = null;
-        double minDistance = Double.NEGATIVE_INFINITY;
-        double maxDistance = Double.POSITIVE_INFINITY;
-        for (Move move : possibleMoves) {
-            Board.GameState newState = state.advance(move);
-            if (move.commencedBy().isMrX()) {
-                mrXLocation = getMrXLocationFromMove(move);
-                double closestDetective = closestDetectiveDistance(newState, mrXLocation);
-                if (closestDetective > minDistance) {
-                    bestMove = move;
-                    minDistance = closestDetective;
-                }
-            } else { // detective move
-                double mrXDistance = mrXDistance(newState, mrXLocation, (Piece.Detective) move.commencedBy());
-                if (mrXDistance < maxDistance) { // want detectives to get as close as possible
-                    bestMove = move;
-                    maxDistance = mrXDistance;
-                }
-            }
-        }
-        return bestMove;
-    }
+//    public Move bestMoveBasedOnClosestDetective(Board.GameState state, ArrayList<Move> possibleMoves, int mrXLocation) {
+//        Move bestMove = null;
+//        double minDistance = Double.NEGATIVE_INFINITY;
+//        double maxDistance = Double.POSITIVE_INFINITY;
+//        for (Move move : possibleMoves) {
+//            Board.GameState newState = state.advance(move);
+//            if (move.commencedBy().isMrX()) {
+//                mrXLocation = getMrXLocationFromMove(move);
+//                double closestDetective = closestDetectiveDistance(newState, mrXLocation);
+//                if (closestDetective > minDistance) {
+//                    bestMove = move;
+//                    minDistance = closestDetective;
+//                }
+//            } else { // detective move
+//                double mrXDistance = mrXDistance(newState, mrXLocation, (Piece.Detective) move.commencedBy());
+//                if (mrXDistance < maxDistance) { // want detectives to get as close as possible
+//                    bestMove = move;
+//                    maxDistance = mrXDistance;
+//                }
+//            }
+//        }
+//        return bestMove;
+//    }
 
 }
