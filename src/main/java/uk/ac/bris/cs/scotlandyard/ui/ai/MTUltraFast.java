@@ -4,22 +4,18 @@ import java.nio.charset.StandardCharsets;
 
 import com.google.common.collect.*;
 import com.google.common.graph.ImmutableValueGraph;
-import com.google.common.graph.MutableValueGraph;
-import com.google.common.graph.ValueGraphBuilder;
-//import com.google.
 import com.google.common.io.Resources;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
 import javax.annotation.Nonnull;
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.IOException;
-import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.readGraph;
+
+
 
 class UltraFastAiThread extends Thread {
     MTUltraFast.Node child;
@@ -31,6 +27,30 @@ class UltraFastAiThread extends Thread {
     public void run() {
         MTUltraFast.buildAllChildren(child,1);
     }
+}
+
+class TimerThread extends Thread {
+    long timeLimit;
+    ArrayList<Thread> threads;
+
+    public TimerThread(Long timeLimit, ArrayList<Thread> threads) {
+        this.timeLimit = timeLimit;
+        this.threads = threads;
+    }
+
+    @Override
+    public void run() {
+        try {
+            Thread.sleep(timeLimit - 3000);
+            System.out.println("Time is running out... Stopping all threads!");
+            for (Thread t : threads) {
+                t.interrupt();
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
 
 public class MTUltraFast implements Ai {
@@ -79,7 +99,7 @@ public class MTUltraFast implements Ai {
     // Dijkstra for all nodes predetermined
     @Override
     public void onStart() {
-        detectives = Arrays.asList(Piece.Detective.RED, Piece.Detective.GREEN, Piece.Detective.BLUE, Piece.Detective.WHITE, Piece.Detective.YELLOW);
+        detectives = new ArrayList<>();
         dijkstraAll = new HashMap<>();
         ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> defaultGraph;
         try {
@@ -95,12 +115,14 @@ public class MTUltraFast implements Ai {
     @Nonnull
     @Override
     public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
+        long timeInMs = timeoutPair.left() * 1000;
         HashMap<ScotlandYard.Ticket, Integer> tempTicketMap = new HashMap<>();
         ArrayList<ScotlandYard.Ticket> tempTicketList = new ArrayList<>(Arrays.asList(ScotlandYard.Ticket.TAXI, ScotlandYard.Ticket.BUS, ScotlandYard.Ticket.UNDERGROUND, ScotlandYard.Ticket.DOUBLE, ScotlandYard.Ticket.SECRET));
         MyGameStateFactory factory = new MyGameStateFactory();
         ArrayList<Player> detectivesList = new ArrayList<>();
         Player mrX = null;
         int location = 0;
+        ArrayList<Piece> detectiveTemp = new ArrayList<>();
         for (Piece piece : board.getPlayers()) {
             for (ScotlandYard.Ticket ticket : tempTicketList) {
                 tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
@@ -109,12 +131,14 @@ public class MTUltraFast implements Ai {
                 location = board.getAvailableMoves().asList().get(0).source();
                 mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
             } else {
+                detectiveTemp.add(piece);
                 Piece.Detective newDetective = (Piece.Detective) piece;
                 Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
                 Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), detectiveLocation.get());
                 detectivesList.add(newPlayer);
             }
         }
+        detectives = detectiveTemp;
         Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
         Node root = new Node(gameState, null, null, 0);
 
@@ -122,14 +146,14 @@ public class MTUltraFast implements Ai {
         initialiseRootWithMrX(root, board, gameState);
 
         // build all subsequent states from each mrx (root) node
-        ArrayList<UltraFastAiThread> threads = new ArrayList<>();
+        ArrayList<Thread> threads = new ArrayList<>();
         for (Node child : root.children) {
-            UltraFastAiThread newThread = new UltraFastAiThread(child);
+            Thread newThread = new UltraFastAiThread(child);
             newThread.start();
             threads.add(newThread);
         }
 
-        for (UltraFastAiThread IndividualThread : threads) {
+        for (Thread IndividualThread : threads) {
             try{
                 IndividualThread.join();
             } catch (InterruptedException e) {
@@ -141,14 +165,23 @@ public class MTUltraFast implements Ai {
 
         Move bestMove = null;
         for (Node child : root.children) {
-            for (Node grandchild : child.children){
-            }
+            System.out.println(child.move + " " + child.value);
             if (child.value == root.value) {
                 bestMove = child.move;
             }
         }
         return bestMove;
     }
+
+//    public static void initialiseRootWithMrX(Node root, Board board) {
+//        ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
+//        filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
+//        for (Move mrXMove : filteredMoves) {
+//            Board.GameState newState = root.state.advance(mrXMove);
+//            Node child = new Node(newState, root, mrXMove, 0);
+//            root.children.add(child);
+//        }
+//    }
 
     public static void initialiseRootWithMrX(Node root, Board board, Board.GameState gameState) {
         ArrayList<Piece> playerPieces = new ArrayList<>(gameState.getPlayers());
@@ -161,7 +194,6 @@ public class MTUltraFast implements Ai {
         ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
         filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
         filteredMoves = Filter.killerMoves(filteredMoves,detectiveLocations,dijkstraAll,playerPieces,gameState);
-        System.out.println(filteredMoves);
         for (Move mrXMove : filteredMoves) {
             Board.GameState newState = root.state.advance(mrXMove);
             Node child = new Node(newState, root, mrXMove, 0);
@@ -182,7 +214,7 @@ public class MTUltraFast implements Ai {
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, 0);
             node.children.add(child);
-            if (depth < 5) {
+            if (depth < 12) {
                 buildAllChildren(child, depth + 1);
             } else {
                 bestArrayOfMoves(child);
@@ -222,12 +254,12 @@ public class MTUltraFast implements Ai {
             double listValueDijkstra = 0;
             double smallestVal = Double.POSITIVE_INFINITY;
             for (int val : list) {
+                if (val == -1) continue;
                 double temp = dijkstraMap.get(val);
                 if (temp < smallestVal) smallestVal = temp;
                 listValueDijkstra += temp;
             }
-            // double listValueDijkstra = list.stream().map(x -> (dijkstraAll.get(node.location)).get(x)).reduce(0.0, Double::sum);
-            if ((listValueDijkstra < minVal) && !hasDuplicates(list)) { // checking for duplicates
+            if ((listValueDijkstra < minVal) && !hasDuplicatesNotMinusOne(list)) { // checking for duplicates
                 minVal = listValueDijkstra;
 //                node.value = smallestVal;
                 node.value = minVal;
@@ -237,6 +269,7 @@ public class MTUltraFast implements Ai {
         ArrayList<Move> resultList = new ArrayList<>();
         if (!(bestList.isEmpty())) {
             for (int i = 0; i < detectives.size(); i++) {
+                if (bestList.get(i) == -1) continue;
                 Move move = getMoveFromInteger(detectives.get(i), bestList.get(i), node.possibleMoves);
                 resultList.add(move);
             }
@@ -244,10 +277,10 @@ public class MTUltraFast implements Ai {
         return resultList;
     }
 
-    public static boolean hasDuplicates(List<Integer> list) {
+    public static boolean hasDuplicatesNotMinusOne(List<Integer> list) {
         Set<Object> set = new HashSet<>();
         for (Integer val : list) {
-            if (!set.add(val)) {
+            if (!set.add(val) && (val != -1)) {
                 return true;
             }
         }
@@ -269,6 +302,7 @@ public class MTUltraFast implements Ai {
 //                        System.out.println("MOVER: " + move.commencedBy() +"VALUES: " + test2);
                     }
                 }
+                if (intList.isEmpty()) intList = Set.of(-1);
                 twoDList.add(intList);
             }
         }

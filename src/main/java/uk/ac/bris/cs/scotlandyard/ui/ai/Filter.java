@@ -33,40 +33,40 @@ public class Filter {
         return returnMoves;
     }
 
-    public static ArrayList<Move> duplicatePruningOld(List<Move> moves) {
-        Map.Entry<Integer, Boolean> entry;
-        Map<Integer, Move> singleMoveMap = new HashMap<>();
-        Map<Integer, Move> doubleMoveMap = new HashMap<>();
-        Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
-        for (Move move : moves) {
-            entry = move.accept(new Move.Visitor<Map.Entry<Integer, Boolean>>() {
-                @Override
-                public Map.Entry<Integer, Boolean> visit(Move.SingleMove move) {
-                    return new AbstractMap.SimpleEntry<>(move.destination, true);
-                }
-
-                @Override
-                public Map.Entry<Integer, Boolean> visit(Move.DoubleMove move) {
-                    return new AbstractMap.SimpleEntry<>(move.destination2, false);
-                }
-            });
-            int destination = entry.getKey();
-            boolean singleMove = entry.getValue();
-            if (singleMove) {
-                singleMoveMap.put(destination, move);
-            }
-            // removing double moves that go to and back to the same spot
-            if (!singleMove && (destination != move.source())) {
-                doubleMoveMap.put(destination, move);
-            }
-        }
-        for (int tempDestination : doubleMoveMap.keySet()) {
-            if (!(singleMoveMap.containsKey(tempDestination))) {
-                singleMoveMap.put(tempDestination, doubleMoveMap.get(tempDestination));
-            }
-        }
-        return new ArrayList<>(singleMoveMap.values());
-    }
+//    public static ArrayList<Move> duplicatePruningOld(List<Move> moves) {
+//        Map.Entry<Integer, Boolean> entry;
+//        Map<Integer, Move> singleMoveMap = new HashMap<>();
+//        Map<Integer, Move> doubleMoveMap = new HashMap<>();
+//        Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
+//        for (Move move : moves) {
+//            entry = move.accept(new Move.Visitor<Map.Entry<Integer, Boolean>>() {
+//                @Override
+//                public Map.Entry<Integer, Boolean> visit(Move.SingleMove move) {
+//                    return new AbstractMap.SimpleEntry<>(move.destination, true);
+//                }
+//
+//                @Override
+//                public Map.Entry<Integer, Boolean> visit(Move.DoubleMove move) {
+//                    return new AbstractMap.SimpleEntry<>(move.destination2, false);
+//                }
+//            });
+//            int destination = entry.getKey();
+//            boolean singleMove = entry.getValue();
+//            if (singleMove) {
+//                singleMoveMap.put(destination, move);
+//            }
+//            // removing double moves that go to and back to the same spot
+//            if (!singleMove && (destination != move.source())) {
+//                doubleMoveMap.put(destination, move);
+//            }
+//        }
+//        for (int tempDestination : doubleMoveMap.keySet()) {
+//            if (!(singleMoveMap.containsKey(tempDestination))) {
+//                singleMoveMap.put(tempDestination, doubleMoveMap.get(tempDestination));
+//            }
+//        }
+//        return new ArrayList<>(singleMoveMap.values());
+//    }
 
     public static ArrayList<Move> duplicatePruning(List<Move> moves, Piece mover) {
         Map.Entry<Integer, Boolean> entry;
@@ -107,7 +107,7 @@ public class Filter {
     }
 
 //    public static ArrayList<Move> filterIrrelevantMoves(List<Move> moves, Board.GameState gameState, ArrayListMultimap<Move, Integer> movesMultimap) {
-//        ArrayList<Move> operationMoves = new ArrayList<>(duplicatePruning(moves,null));
+//        ArrayList<Move> operationMoves = new ArrayList<>(duplicatePruning(moves));
 //        operationMoves = doubleOrSingleFilter(operationMoves, true);
 //        ArrayList<Piece> players = new ArrayList<>(gameState.getPlayers());
 //        for (Move individualMove : operationMoves) {
@@ -245,7 +245,7 @@ public class Filter {
     }
 
     public static ArrayList<Move> killerMoves(ArrayList<Move> mrXmoves, ArrayList<Integer> detectivesLocations, Map<Integer, Map<Integer, Double>> dijkstraAll, ArrayList<Piece> Players, Board.GameState gameState) {
-        boolean couldBeKilled = false;
+        int couldBeKilled = 0;
         ArrayList<Move> returnMoves = new ArrayList<>(Filter.doubleOrSingleFilter(mrXmoves,true));
         //Map<Integer, Double> dijsktrasFromMrxPos = dijkstraAll.get(mrXmoves.get(0).source());
         for (Move individualMove : returnMoves) {
@@ -254,12 +254,12 @@ public class Filter {
             for (Move detectiveMove : newState.getAvailableMoves()) {
                 Move.SingleMove DetectiveTemp = (Move.SingleMove) detectiveMove;
                 if (DetectiveTemp.destination == mrXtemp.destination) {
-                    couldBeKilled = true;
+                    couldBeKilled += 1;
                 }
             }
         }
 
-        if (couldBeKilled){
+        if (couldBeKilled > 1){
             System.out.println("hi");
             double bestTotal = Double.NEGATIVE_INFINITY;
             Move bestMove = null;
