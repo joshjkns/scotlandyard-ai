@@ -114,19 +114,18 @@ public class UltraFast implements Ai {
 
         // build all subsequent states from each mrx (root) node
         for (Node child : root.children) {
-            buildAllChildren(child, 0);
+            buildAllChildren(child, 1);
         }
 
-        double maxVal = Double.NEGATIVE_INFINITY;
+        traverseTree(root);
         Move bestMove = null;
         for (Node child : root.children) {
-            System.out.println("MOVE: " + child.move + "VALUE: " + child.value);
-            if (child.value > maxVal) {
+            for (Node grandchild : child.children){
+            }
+            if (child.value == root.value) {
                 bestMove = child.move;
-                maxVal = child.value;
             }
         }
-        System.out.println(bestMove);
         return bestMove;
     }
 
@@ -141,8 +140,9 @@ public class UltraFast implements Ai {
     }
 
     public void buildAllChildren(Node node, int depth) {
-        ArrayList<Move> bestMoveList = bestArrayOfMoves(node);
         Board.GameState newState = node.state;
+        if (!(node.state.getWinner().isEmpty())) return;
+        ArrayList<Move> bestMoveList = bestArrayOfMoves(node);
         for (Move move : bestMoveList) { // advances 5x for the detectives
             if (newState.getWinner().isEmpty()) newState = newState.advance(move);
         }
@@ -150,20 +150,27 @@ public class UltraFast implements Ai {
         filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
         for (Move mrXMove : filteredMoves) { // from the newest state get all mrx moves and advance, create a child and add to its parent
             Board.GameState mrXState = newState.advance(mrXMove);
-            Node child = new Node(mrXState, node, mrXMove, node.value);
+            Node child = new Node(mrXState, node, mrXMove, 0);
             node.children.add(child);
-            if (depth < 3) {
+            if (depth < 7) {
                 buildAllChildren(child, depth + 1);
-            } else { // leaf node
-                backpropagateValues(child);
+            } else {
+                bestArrayOfMoves(child);
             }
         }
     }
 
-    public void backpropagateValues(Node node) {
-        while (node.parent.parent != null) { // going to mrx first node NOT ROOT
-            node.value = Math.min(node.value, node.parent.value);
-            node = node.parent;
+    public double traverseTree(Node node) {
+        double maxVal = Double.NEGATIVE_INFINITY;
+        if (node.children.isEmpty()) {
+            return node.value;
+        } else {
+            for (Node child : node.children) {
+                double value = traverseTree(child);
+                maxVal = Math.max(maxVal, value);
+            }
+            node.value += maxVal;
+            return node.value;
         }
     }
 
@@ -192,14 +199,17 @@ public class UltraFast implements Ai {
             // double listValueDijkstra = list.stream().map(x -> (dijkstraAll.get(node.location)).get(x)).reduce(0.0, Double::sum);
             if ((listValueDijkstra < minVal) && !hasDuplicates(list)) { // checking for duplicates
                 minVal = listValueDijkstra;
-                node.value = smallestVal;
+//                node.value = smallestVal;
+                node.value = minVal;
                 bestList = list;
             }
         }
         ArrayList<Move> resultList = new ArrayList<>();
-        for (int i = 0; i < detectives.size(); i++) {
-            Move move = getMoveFromInteger(detectives.get(i), bestList.get(i), node.possibleMoves);
-            resultList.add(move);
+        if (!(bestList.isEmpty())) {
+            for (int i = 0; i < detectives.size(); i++) {
+                Move move = getMoveFromInteger(detectives.get(i), bestList.get(i), node.possibleMoves);
+                resultList.add(move);
+            }
         }
         return resultList;
     }
