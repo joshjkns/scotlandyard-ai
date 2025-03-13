@@ -306,6 +306,7 @@ public class MTUltraFast implements Ai {
                 twoDList.add(intList);
             }
         }
+        System.out.println(twoDList);
         return twoDList;
     }
 

@@ -224,6 +224,7 @@ public class Filter {
             for (Move detectiveMove : newState.getAvailableMoves()) {
                 Move.SingleMove DetectiveTemp = (Move.SingleMove) detectiveMove;
                 if (DetectiveTemp.destination == mrXtemp.destination) {
+                    System.out.println(detectiveMove.commencedBy());
                     couldBeKilled += 1;
                 }
             }
@@ -236,8 +237,9 @@ public class Filter {
             for (Move doubleMove : Filter.doubleOrSingleFilter(gameState.getAvailableMoves().asList(), false)) {
                 double tempTotal = 0;
                 Move.DoubleMove mrXtemp = (Move.DoubleMove) doubleMove;
-                Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXtemp.source());
-                for (Piece playerPiece : Players) {
+                Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXtemp.destination2); // was originally from source rather than where he
+                System.out.println(tempDijkstras);
+                for (Piece playerPiece : Players) { // was going to be after the move
                     if (playerPiece.isDetective()){
                         for (Integer detectivesLocation : detectivesLocations) {
                             tempTotal += tempDijkstras.get(detectivesLocation);
