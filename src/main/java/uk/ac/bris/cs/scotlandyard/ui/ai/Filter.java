@@ -245,7 +245,7 @@ public class Filter {
     }
 
     public static ArrayList<Move> killerMoves(ArrayList<Move> mrXmoves, ArrayList<Integer> detectivesLocations, Map<Integer, Map<Integer, Double>> dijkstraAll, ArrayList<Piece> Players, Board.GameState gameState) {
-        boolean couldBeKilled = false;
+        int couldBeKilled = 0;
         ArrayList<Move> returnMoves = new ArrayList<>(Filter.doubleOrSingleFilter(mrXmoves,true));
         //Map<Integer, Double> dijsktrasFromMrxPos = dijkstraAll.get(mrXmoves.get(0).source());
         for (Move individualMove : returnMoves) {
@@ -254,16 +254,16 @@ public class Filter {
             for (Move detectiveMove : newState.getAvailableMoves()) {
                 Move.SingleMove DetectiveTemp = (Move.SingleMove) detectiveMove;
                 if (DetectiveTemp.destination == mrXtemp.destination) {
-                    couldBeKilled = true;
+                    couldBeKilled += 1;
                 }
             }
         }
 
-        if (couldBeKilled){
+        if (couldBeKilled > 1){
             System.out.println("hi");
             double bestTotal = Double.NEGATIVE_INFINITY;
             Move bestMove = null;
-            for (Move doubleMove : Filter.doubleOrSingleFilter(mrXmoves, false)) {
+            for (Move doubleMove : Filter.doubleOrSingleFilter(gameState.getAvailableMoves().asList(), false)) {
                 double tempTotal = 0;
                 Move.DoubleMove mrXtemp = (Move.DoubleMove) doubleMove;
                 Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXtemp.source());

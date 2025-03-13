@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 
 import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.readGraph;
 
+
+
 class UltraFastAiThread extends Thread {
     MTUltraFast.Node child;
     public UltraFastAiThread(MTUltraFast.Node child) {
@@ -26,6 +28,30 @@ class UltraFastAiThread extends Thread {
     public void run() {
         MTUltraFast.buildAllChildren(child,1);
     }
+}
+
+class TimerThread extends Thread {
+    long timeLimit;
+    ArrayList<Thread> threads;
+
+    public TimerThread(Long timeLimit, ArrayList<Thread> threads) {
+        this.timeLimit = timeLimit;
+        this.threads = threads;
+    }
+
+    @Override
+    public void run() {
+        try {
+            Thread.sleep(timeLimit - 3000);
+            System.out.println("Time is running out... Stopping all threads!");
+            for (Thread t : threads) {
+                t.interrupt();
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
 
 public class MTUltraFast implements Ai {
@@ -90,7 +116,7 @@ public class MTUltraFast implements Ai {
     @Nonnull
     @Override
     public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
-        long currTime = System.currentTimeMillis();
+        long timeInMs = timeoutPair.left() * 1000;
         HashMap<ScotlandYard.Ticket, Integer> tempTicketMap = new HashMap<>();
         ArrayList<ScotlandYard.Ticket> tempTicketList = new ArrayList<>(Arrays.asList(ScotlandYard.Ticket.TAXI, ScotlandYard.Ticket.BUS, ScotlandYard.Ticket.UNDERGROUND, ScotlandYard.Ticket.DOUBLE, ScotlandYard.Ticket.SECRET));
         MyGameStateFactory factory = new MyGameStateFactory();
@@ -121,13 +147,14 @@ public class MTUltraFast implements Ai {
         initialiseRootWithMrX(root, board, gameState);
 
         // build all subsequent states from each mrx (root) node
-        ArrayList<UltraFastAiThread> threads = new ArrayList<>();
+        ArrayList<Thread> threads = new ArrayList<>();
         for (Node child : root.children) {
-            UltraFastAiThread newThread = new UltraFastAiThread(child);
+            Thread newThread = new UltraFastAiThread(child);
             newThread.start();
             threads.add(newThread);
         }
-        for (UltraFastAiThread IndividualThread : threads) {
+
+        for (Thread IndividualThread : threads) {
             try{
                 IndividualThread.join();
             } catch (InterruptedException e) {
@@ -176,6 +203,11 @@ public class MTUltraFast implements Ai {
     }
 
     public static void buildAllChildren(Node node, int depth) {
+        if (Thread.interrupted()) { // Check if thread was interrupted
+            System.out.println("AI stopped at depth " + depth);
+            return;
+        }
+
         Board.GameState newState = node.state;
         if (!(node.state.getWinner().isEmpty())) return;
         ArrayList<Move> bestMoveList = bestArrayOfMoves(node);
@@ -188,7 +220,7 @@ public class MTUltraFast implements Ai {
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, 0);
             node.children.add(child);
-            if (depth < 10) {
+            if (depth < 12) {
                 buildAllChildren(child, depth + 1);
             } else {
                 bestArrayOfMoves(child);
