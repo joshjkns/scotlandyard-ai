@@ -1,6 +1,5 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
-import com.google.common.collect.ArrayListMultimap;
 import uk.ac.bris.cs.scotlandyard.model.Board;
 import uk.ac.bris.cs.scotlandyard.model.Move;
 import uk.ac.bris.cs.scotlandyard.model.Piece;
@@ -72,7 +71,7 @@ public class Filter {
         Map.Entry<Integer, Boolean> entry;
         Map<Integer, Move> singleMoveMap = new HashMap<>();
         Map<Integer, Move> doubleMoveMap = new HashMap<>();
-        Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
+        Collections.shuffle(moves);
         for (Move move : moves) {
             if (!(move.commencedBy() == mover)) {
                 continue; // go to next move
@@ -106,37 +105,8 @@ public class Filter {
         return new ArrayList<>(singleMoveMap.values());
     }
 
-//    public static ArrayList<Move> filterIrrelevantMoves(List<Move> moves, Board.GameState gameState, ArrayListMultimap<Move, Integer> movesMultimap) {
-//        ArrayList<Move> operationMoves = new ArrayList<>(duplicatePruning(moves));
-//        operationMoves = doubleOrSingleFilter(operationMoves, true);
-//        ArrayList<Piece> players = new ArrayList<>(gameState.getPlayers());
-//        for (Move individualMove : operationMoves) {
-//            Board.GameState newState = gameState.advance(individualMove);
-//            int destination = individualMove.accept(new Move.Visitor<>() {
-//                @Override
-//                public Integer visit(Move.SingleMove move) {
-//                    return move.destination;
-//                }
-//
-//                @Override
-//                public Integer visit(Move.DoubleMove move) {
-//                    return move.destination2;
-//                }
-//            });
-//            Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(newState, destination);
-//            int totalDistance = 0;
-//            for (Piece individualPlayer : players) {
-//                if (individualPlayer.isDetective()) {
-//                    Piece.Detective currentPiece = (Piece.Detective) individualPlayer;
-//                    totalDistance += dijkstraResult.get(newState.getDetectiveLocation(currentPiece).get());
-//                }
-//            }
-//            movesMultimap.put(individualMove, totalDistance);
-//        }
-//        return operationMoves;
-//    }
 
-    public static ArrayList<Move> filterIrrelevantMovesV2(List<Move> moves, Piece playerPiece, Map<Integer, Double> dijkstraResult) {
+    public static ArrayList<Move> filterIrrelevantMoves(List<Move> moves, Piece playerPiece, Map<Integer, Double> dijkstraResult) {
         ArrayList<Move> returnMoves = new ArrayList<>();      //??if mrX is at least 2 away from the closest move destination?? <- dunno if it's needed, and the edge is 2 away from the closest move destination, then eliminate if mrX moves are only single moves, hence all the detectives are not close to each-other, is such a way that their interaction would affect the miniMax tree
         ArrayList<Move> temporaryMoves = new ArrayList<>();
         for (Move individualMove : moves) {

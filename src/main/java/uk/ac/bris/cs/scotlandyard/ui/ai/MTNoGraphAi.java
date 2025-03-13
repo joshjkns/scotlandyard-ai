@@ -57,7 +57,7 @@ class AiThread extends Thread {
       ArrayList<Move> newMoveList = new ArrayList<>();
       for (Piece individualDetectivePiece : gameState.getPlayers().asList()){
           if (individualDetectivePiece.isDetective()){
-              newMoveList.addAll(Filter.filterIrrelevantMovesV2(newMoves,individualDetectivePiece,dijkstraResult));
+              newMoveList.addAll(Filter.filterIrrelevantMoves(newMoves,individualDetectivePiece,dijkstraResult));
           }
       }
       value = MTNoGraphAi.miniMax(Dijkstra.dijkstraFunction(newState.getSetup().graph, destination), tempPlayers, newState, Filter.duplicatePruning(newMoveList, tempPlayers.get(0)), alpha, beta, finalMap);
@@ -236,7 +236,7 @@ public class MTNoGraphAi implements Ai {
                     ArrayList<Move> newMoveList = new ArrayList<>();
                     for (Piece individualDetectivePiece : gameState.getPlayers().asList()) {
                         if (individualDetectivePiece.isDetective()) {
-                            newMoveList.addAll(Filter.filterIrrelevantMovesV2(newMoves, individualDetectivePiece, dijkstraResult));
+                            newMoveList.addAll(Filter.filterIrrelevantMoves(newMoves, individualDetectivePiece, dijkstraResult));
                         }
                     }
                     value = miniMax(tempDijkstraResult, tempPlayers, newState, Filter.duplicatePruning(newMoveList, tempPlayers.get(0)), alpha, beta, finalMap);

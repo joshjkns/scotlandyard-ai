@@ -214,7 +214,7 @@ public class MTUltraFast implements Ai {
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, 0);
             node.children.add(child);
-            if (depth < 12) {
+            if (depth < 10) {
                 buildAllChildren(child, depth + 1);
             } else {
                 bestArrayOfMoves(child);

@@ -160,7 +160,7 @@ public class NoGraphAiTotal implements Ai {
                 ArrayList<Move> newMoveList = new ArrayList<>();
                 for (Piece individualDetectivePiece : gameState.getPlayers().asList()){
                     if (individualDetectivePiece.isDetective()){
-                        newMoveList.addAll(Filter.filterIrrelevantMovesV2(newMoves,individualDetectivePiece,dijkstraResult));
+                        newMoveList.addAll(Filter.filterIrrelevantMoves(newMoves,individualDetectivePiece,dijkstraResult));
                     }
                 }
 
