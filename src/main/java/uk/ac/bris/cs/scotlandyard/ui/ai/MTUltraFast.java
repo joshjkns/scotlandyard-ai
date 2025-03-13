@@ -4,20 +4,15 @@ import java.nio.charset.StandardCharsets;
 
 import com.google.common.collect.*;
 import com.google.common.graph.ImmutableValueGraph;
-import com.google.common.graph.MutableValueGraph;
-import com.google.common.graph.ValueGraphBuilder;
 //import com.google.
 import com.google.common.io.Resources;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
 import javax.annotation.Nonnull;
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.IOException;
-import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.readGraph;
 
@@ -79,7 +74,7 @@ public class MTUltraFast implements Ai {
     // Dijkstra for all nodes predetermined
     @Override
     public void onStart() {
-        detectives = Arrays.asList(Piece.Detective.RED, Piece.Detective.GREEN, Piece.Detective.BLUE, Piece.Detective.WHITE, Piece.Detective.YELLOW);
+        detectives = new ArrayList<>();
         dijkstraAll = new HashMap<>();
         ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> defaultGraph;
         try {
@@ -95,12 +90,14 @@ public class MTUltraFast implements Ai {
     @Nonnull
     @Override
     public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
+        long currTime = System.currentTimeMillis();
         HashMap<ScotlandYard.Ticket, Integer> tempTicketMap = new HashMap<>();
         ArrayList<ScotlandYard.Ticket> tempTicketList = new ArrayList<>(Arrays.asList(ScotlandYard.Ticket.TAXI, ScotlandYard.Ticket.BUS, ScotlandYard.Ticket.UNDERGROUND, ScotlandYard.Ticket.DOUBLE, ScotlandYard.Ticket.SECRET));
         MyGameStateFactory factory = new MyGameStateFactory();
         ArrayList<Player> detectivesList = new ArrayList<>();
         Player mrX = null;
         int location = 0;
+        ArrayList<Piece> detectiveTemp = new ArrayList<>();
         for (Piece piece : board.getPlayers()) {
             for (ScotlandYard.Ticket ticket : tempTicketList) {
                 tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
@@ -109,17 +106,19 @@ public class MTUltraFast implements Ai {
                 location = board.getAvailableMoves().asList().get(0).source();
                 mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
             } else {
+                detectiveTemp.add(piece);
                 Piece.Detective newDetective = (Piece.Detective) piece;
                 Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
                 Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), detectiveLocation.get());
                 detectivesList.add(newPlayer);
             }
         }
+        detectives = detectiveTemp;
         Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
         Node root = new Node(gameState, null, null, 0);
 
         // initialise mrX first set of moves off of root;
-        initialiseRootWithMrX(root, board);
+        initialiseRootWithMrX(root, board, gameState);
 
         // build all subsequent states from each mrx (root) node
         ArrayList<UltraFastAiThread> threads = new ArrayList<>();
@@ -140,8 +139,7 @@ public class MTUltraFast implements Ai {
 
         Move bestMove = null;
         for (Node child : root.children) {
-            for (Node grandchild : child.children){
-            }
+            System.out.println(child.move + " " + child.value);
             if (child.value == root.value) {
                 bestMove = child.move;
             }
@@ -149,9 +147,27 @@ public class MTUltraFast implements Ai {
         return bestMove;
     }
 
-    public static void initialiseRootWithMrX(Node root, Board board) {
+//    public static void initialiseRootWithMrX(Node root, Board board) {
+//        ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
+//        filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
+//        for (Move mrXMove : filteredMoves) {
+//            Board.GameState newState = root.state.advance(mrXMove);
+//            Node child = new Node(newState, root, mrXMove, 0);
+//            root.children.add(child);
+//        }
+//    }
+
+    public static void initialiseRootWithMrX(Node root, Board board, Board.GameState gameState) {
+        ArrayList<Piece> playerPieces = new ArrayList<>(gameState.getPlayers());
+        ArrayList<Integer> detectiveLocations = new ArrayList<>();
+        for(Piece individualPlayer : gameState.getPlayers()){
+            if (individualPlayer.isDetective()){
+                detectiveLocations.add(gameState.getDetectiveLocation((Piece.Detective) individualPlayer).get());
+            }
+        }
         ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
         filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
+        filteredMoves = Filter.killerMoves(filteredMoves,detectiveLocations,dijkstraAll,playerPieces,gameState);
         for (Move mrXMove : filteredMoves) {
             Board.GameState newState = root.state.advance(mrXMove);
             Node child = new Node(newState, root, mrXMove, 0);
@@ -172,7 +188,7 @@ public class MTUltraFast implements Ai {
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, 0);
             node.children.add(child);
-            if (depth < 7) {
+            if (depth < 10) {
                 buildAllChildren(child, depth + 1);
             } else {
                 bestArrayOfMoves(child);
@@ -204,6 +220,7 @@ public class MTUltraFast implements Ai {
 
     public static ArrayList<Move> bestArrayOfMoves(Node node) {
         List<Set<Integer>> twoDList = twoDArrayOfMoves(node);
+
         Set<List<Integer>> combinations = Sets.cartesianProduct(twoDList);
         List<Integer> bestList = new ArrayList<>();
         double minVal = Double.POSITIVE_INFINITY;
@@ -212,12 +229,12 @@ public class MTUltraFast implements Ai {
             double listValueDijkstra = 0;
             double smallestVal = Double.POSITIVE_INFINITY;
             for (int val : list) {
+                if (val == -1) continue;
                 double temp = dijkstraMap.get(val);
                 if (temp < smallestVal) smallestVal = temp;
                 listValueDijkstra += temp;
             }
-            // double listValueDijkstra = list.stream().map(x -> (dijkstraAll.get(node.location)).get(x)).reduce(0.0, Double::sum);
-            if ((listValueDijkstra < minVal) && !hasDuplicates(list)) { // checking for duplicates
+            if ((listValueDijkstra < minVal) && !hasDuplicatesNotMinusOne(list)) { // checking for duplicates
                 minVal = listValueDijkstra;
 //                node.value = smallestVal;
                 node.value = minVal;
@@ -227,6 +244,7 @@ public class MTUltraFast implements Ai {
         ArrayList<Move> resultList = new ArrayList<>();
         if (!(bestList.isEmpty())) {
             for (int i = 0; i < detectives.size(); i++) {
+                if (bestList.get(i) == -1) continue;
                 Move move = getMoveFromInteger(detectives.get(i), bestList.get(i), node.possibleMoves);
                 resultList.add(move);
             }
@@ -234,10 +252,10 @@ public class MTUltraFast implements Ai {
         return resultList;
     }
 
-    public static boolean hasDuplicates(List<Integer> list) {
+    public static boolean hasDuplicatesNotMinusOne(List<Integer> list) {
         Set<Object> set = new HashSet<>();
         for (Integer val : list) {
-            if (!set.add(val)) {
+            if (!set.add(val) && (val != -1)) {
                 return true;
             }
         }
@@ -259,6 +277,7 @@ public class MTUltraFast implements Ai {
 //                        System.out.println("MOVER: " + move.commencedBy() +"VALUES: " + test2);
                     }
                 }
+                if (intList.isEmpty()) intList = Set.of(-1);
                 twoDList.add(intList);
             }
         }

@@ -243,4 +243,46 @@ public class Filter {
 //        }
         //return returnMoves;
     }
+
+    public static ArrayList<Move> killerMoves(ArrayList<Move> mrXmoves, ArrayList<Integer> detectivesLocations, Map<Integer, Map<Integer, Double>> dijkstraAll, ArrayList<Piece> Players, Board.GameState gameState) {
+        boolean couldBeKilled = false;
+        ArrayList<Move> returnMoves = new ArrayList<>(Filter.doubleOrSingleFilter(mrXmoves,true));
+        //Map<Integer, Double> dijsktrasFromMrxPos = dijkstraAll.get(mrXmoves.get(0).source());
+        for (Move individualMove : returnMoves) {
+            Move.SingleMove mrXtemp = (Move.SingleMove) individualMove;
+            Board.GameState newState = gameState.advance(individualMove);
+            for (Move detectiveMove : newState.getAvailableMoves()) {
+                Move.SingleMove DetectiveTemp = (Move.SingleMove) detectiveMove;
+                if (DetectiveTemp.destination == mrXtemp.destination) {
+                    couldBeKilled = true;
+                }
+            }
+        }
+
+        if (couldBeKilled){
+            System.out.println("hi");
+            double bestTotal = Double.NEGATIVE_INFINITY;
+            Move bestMove = null;
+            for (Move doubleMove : Filter.doubleOrSingleFilter(mrXmoves, false)) {
+                double tempTotal = 0;
+                Move.DoubleMove mrXtemp = (Move.DoubleMove) doubleMove;
+                Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXtemp.source());
+                for (Piece playerPiece : Players) {
+                    if (playerPiece.isDetective()){
+                        for (Integer detectivesLocation : detectivesLocations) {
+                            tempTotal += tempDijkstras.get(detectivesLocation);
+                        }
+                    }
+                }
+                if (tempTotal > bestTotal){
+                    bestMove = doubleMove;
+                    bestTotal = tempTotal;
+                }
+            }
+            if (bestMove != null){
+                returnMoves.add(bestMove);
+            }
+        }
+        return returnMoves;
+    }
 }
