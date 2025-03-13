@@ -119,7 +119,7 @@ public class MTUltraFast implements Ai {
         Node root = new Node(gameState, null, null, 0);
 
         // initialise mrX first set of moves off of root;
-        initialiseRootWithMrX(root, board);
+        initialiseRootWithMrX(root, board, gameState);
 
         // build all subsequent states from each mrx (root) node
         ArrayList<UltraFastAiThread> threads = new ArrayList<>();
@@ -128,6 +128,7 @@ public class MTUltraFast implements Ai {
             newThread.start();
             threads.add(newThread);
         }
+
         for (UltraFastAiThread IndividualThread : threads) {
             try{
                 IndividualThread.join();
@@ -149,9 +150,18 @@ public class MTUltraFast implements Ai {
         return bestMove;
     }
 
-    public static void initialiseRootWithMrX(Node root, Board board) {
+    public static void initialiseRootWithMrX(Node root, Board board, Board.GameState gameState) {
+        ArrayList<Piece> playerPieces = new ArrayList<>(gameState.getPlayers());
+        ArrayList<Integer> detectiveLocations = new ArrayList<>();
+        for(Piece individualPlayer : gameState.getPlayers()){
+            if (individualPlayer.isDetective()){
+                detectiveLocations.add(gameState.getDetectiveLocation((Piece.Detective) individualPlayer).get());
+            }
+        }
         ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
         filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
+        filteredMoves = Filter.killerMoves(filteredMoves,detectiveLocations,dijkstraAll,playerPieces,gameState);
+        System.out.println(filteredMoves);
         for (Move mrXMove : filteredMoves) {
             Board.GameState newState = root.state.advance(mrXMove);
             Node child = new Node(newState, root, mrXMove, 0);
@@ -172,7 +182,7 @@ public class MTUltraFast implements Ai {
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, 0);
             node.children.add(child);
-            if (depth < 7) {
+            if (depth < 5) {
                 buildAllChildren(child, depth + 1);
             } else {
                 bestArrayOfMoves(child);

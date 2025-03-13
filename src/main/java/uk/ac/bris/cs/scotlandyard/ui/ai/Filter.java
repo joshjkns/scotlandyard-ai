@@ -33,40 +33,40 @@ public class Filter {
         return returnMoves;
     }
 
-//    public static ArrayList<Move> duplicatePruningOld(List<Move> moves) {
-//        Map.Entry<Integer, Boolean> entry;
-//        Map<Integer, Move> singleMoveMap = new HashMap<>();
-//        Map<Integer, Move> doubleMoveMap = new HashMap<>();
-//        Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
-//        for (Move move : moves) {
-//            entry = move.accept(new Move.Visitor<Map.Entry<Integer, Boolean>>() {
-//                @Override
-//                public Map.Entry<Integer, Boolean> visit(Move.SingleMove move) {
-//                    return new AbstractMap.SimpleEntry<>(move.destination, true);
-//                }
-//
-//                @Override
-//                public Map.Entry<Integer, Boolean> visit(Move.DoubleMove move) {
-//                    return new AbstractMap.SimpleEntry<>(move.destination2, false);
-//                }
-//            });
-//            int destination = entry.getKey();
-//            boolean singleMove = entry.getValue();
-//            if (singleMove) {
-//                singleMoveMap.put(destination, move);
-//            }
-//            // removing double moves that go to and back to the same spot
-//            if (!singleMove && (destination != move.source())) {
-//                doubleMoveMap.put(destination, move);
-//            }
-//        }
-//        for (int tempDestination : doubleMoveMap.keySet()) {
-//            if (!(singleMoveMap.containsKey(tempDestination))) {
-//                singleMoveMap.put(tempDestination, doubleMoveMap.get(tempDestination));
-//            }
-//        }
-//        return new ArrayList<>(singleMoveMap.values());
-//    }
+    public static ArrayList<Move> duplicatePruningOld(List<Move> moves) {
+        Map.Entry<Integer, Boolean> entry;
+        Map<Integer, Move> singleMoveMap = new HashMap<>();
+        Map<Integer, Move> doubleMoveMap = new HashMap<>();
+        Collections.shuffle(moves); // so he doesn't use the secret x2 always first.
+        for (Move move : moves) {
+            entry = move.accept(new Move.Visitor<Map.Entry<Integer, Boolean>>() {
+                @Override
+                public Map.Entry<Integer, Boolean> visit(Move.SingleMove move) {
+                    return new AbstractMap.SimpleEntry<>(move.destination, true);
+                }
+
+                @Override
+                public Map.Entry<Integer, Boolean> visit(Move.DoubleMove move) {
+                    return new AbstractMap.SimpleEntry<>(move.destination2, false);
+                }
+            });
+            int destination = entry.getKey();
+            boolean singleMove = entry.getValue();
+            if (singleMove) {
+                singleMoveMap.put(destination, move);
+            }
+            // removing double moves that go to and back to the same spot
+            if (!singleMove && (destination != move.source())) {
+                doubleMoveMap.put(destination, move);
+            }
+        }
+        for (int tempDestination : doubleMoveMap.keySet()) {
+            if (!(singleMoveMap.containsKey(tempDestination))) {
+                singleMoveMap.put(tempDestination, doubleMoveMap.get(tempDestination));
+            }
+        }
+        return new ArrayList<>(singleMoveMap.values());
+    }
 
     public static ArrayList<Move> duplicatePruning(List<Move> moves, Piece mover) {
         Map.Entry<Integer, Boolean> entry;
@@ -107,7 +107,7 @@ public class Filter {
     }
 
 //    public static ArrayList<Move> filterIrrelevantMoves(List<Move> moves, Board.GameState gameState, ArrayListMultimap<Move, Integer> movesMultimap) {
-//        ArrayList<Move> operationMoves = new ArrayList<>(duplicatePruning(moves));
+//        ArrayList<Move> operationMoves = new ArrayList<>(duplicatePruning(moves,null));
 //        operationMoves = doubleOrSingleFilter(operationMoves, true);
 //        ArrayList<Piece> players = new ArrayList<>(gameState.getPlayers());
 //        for (Move individualMove : operationMoves) {
@@ -242,5 +242,47 @@ public class Filter {
 //            }
 //        }
         //return returnMoves;
+    }
+
+    public static ArrayList<Move> killerMoves(ArrayList<Move> mrXmoves, ArrayList<Integer> detectivesLocations, Map<Integer, Map<Integer, Double>> dijkstraAll, ArrayList<Piece> Players, Board.GameState gameState) {
+        boolean couldBeKilled = false;
+        ArrayList<Move> returnMoves = new ArrayList<>(Filter.doubleOrSingleFilter(mrXmoves,true));
+        //Map<Integer, Double> dijsktrasFromMrxPos = dijkstraAll.get(mrXmoves.get(0).source());
+        for (Move individualMove : returnMoves) {
+            Move.SingleMove mrXtemp = (Move.SingleMove) individualMove;
+            Board.GameState newState = gameState.advance(individualMove);
+            for (Move detectiveMove : newState.getAvailableMoves()) {
+                Move.SingleMove DetectiveTemp = (Move.SingleMove) detectiveMove;
+                if (DetectiveTemp.destination == mrXtemp.destination) {
+                    couldBeKilled = true;
+                }
+            }
+        }
+
+        if (couldBeKilled){
+            System.out.println("hi");
+            double bestTotal = Double.NEGATIVE_INFINITY;
+            Move bestMove = null;
+            for (Move doubleMove : Filter.doubleOrSingleFilter(gameState.getAvailableMoves().asList(), false)) {
+                double tempTotal = 0;
+                Move.DoubleMove mrXtemp = (Move.DoubleMove) doubleMove;
+                Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXtemp.source());
+                for (Piece playerPiece : Players) {
+                    if (playerPiece.isDetective()){
+                        for (Integer detectivesLocation : detectivesLocations) {
+                            tempTotal += tempDijkstras.get(detectivesLocation);
+                        }
+                    }
+                }
+                if (tempTotal > bestTotal){
+                    bestMove = doubleMove;
+                    bestTotal = tempTotal;
+                }
+            }
+            if (bestMove != null){
+                returnMoves.add(bestMove);
+            }
+        }
+        return returnMoves;
     }
 }
