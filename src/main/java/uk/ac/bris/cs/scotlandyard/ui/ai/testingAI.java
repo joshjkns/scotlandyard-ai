@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.readGraph;
 
-public class testingAI {
+public class TestingAI {
     public static void main(String[] args){
         ArrayList<Move> testArray = new ArrayList<>();
         Move move1 = new Move.SingleMove(ScotlandYard.ALL_PIECES.get(0),181, ScotlandYard.Ticket.SECRET,193);

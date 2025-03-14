@@ -267,13 +267,12 @@ public class Filter {
     public static ArrayList<Move> killerMoves(ArrayList<Move> mrXmoves, ArrayList<Integer> detectivesLocations, Map<Integer, Map<Integer, Double>> dijkstraAll, ArrayList<Piece> Players, Board.GameState gameState) {
         int couldBeKilled = 0;
         ArrayList<Move> returnMoves = new ArrayList<>(Filter.doubleOrSingleFilter(mrXmoves,true));
-        //Map<Integer, Double> dijsktrasFromMrxPos = dijkstraAll.get(mrXmoves.get(0).source());
         for (Move individualMove : returnMoves) {
-            Move.SingleMove mrXtemp = (Move.SingleMove) individualMove;
+            Move.SingleMove mrXTemp = (Move.SingleMove) individualMove;
             Board.GameState newState = gameState.advance(individualMove);
             for (Move detectiveMove : newState.getAvailableMoves()) {
                 Move.SingleMove DetectiveTemp = (Move.SingleMove) detectiveMove;
-                if (DetectiveTemp.destination == mrXtemp.destination) {
+                if (DetectiveTemp.destination == mrXTemp.destination) {
                     System.out.println(detectiveMove.commencedBy());
                     couldBeKilled += 1;
                 }
@@ -286,8 +285,8 @@ public class Filter {
             Move bestMove = null;
             for (Move doubleMove : Filter.doubleOrSingleFilter(gameState.getAvailableMoves().asList(), false)) {
                 double tempTotal = 0;
-                Move.DoubleMove mrXtemp = (Move.DoubleMove) doubleMove;
-                Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXtemp.destination2); // was originally from source rather than where he
+                Move.DoubleMove mrXTemp = (Move.DoubleMove) doubleMove;
+                Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXTemp.destination2); // was originally from source rather than where he
                 System.out.println(tempDijkstras);
                 for (Piece playerPiece : Players) { // was going to be after the move
                     if (playerPiece.isDetective()){

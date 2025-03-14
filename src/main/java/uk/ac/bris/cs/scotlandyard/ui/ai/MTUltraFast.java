@@ -29,30 +29,6 @@ class UltraFastAiThread extends Thread {
     }
 }
 
-class TimerThread extends Thread {
-    long timeLimit;
-    ArrayList<Thread> threads;
-
-    public TimerThread(Long timeLimit, ArrayList<Thread> threads) {
-        this.timeLimit = timeLimit;
-        this.threads = threads;
-    }
-
-    @Override
-    public void run() {
-        try {
-            Thread.sleep(timeLimit - 3000);
-            System.out.println("Time is running out... Stopping all threads!");
-            for (Thread t : threads) {
-                t.interrupt();
-            }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-}
-
 public class MTUltraFast implements Ai {
 
     public static class Node {
@@ -172,6 +148,7 @@ public class MTUltraFast implements Ai {
         }
         return bestMove;
     }
+
 //    public static void initialiseRootWithMrX(Node root, Board board) {
 //        ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
 //        filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
@@ -181,6 +158,7 @@ public class MTUltraFast implements Ai {
 //            root.children.add(child);
 //        }
 //    }
+
     public static void initialiseRootWithMrX(Node root, Board board, Board.GameState gameState) {
         ArrayList<Piece> playerPieces = new ArrayList<>(gameState.getPlayers());
         ArrayList<Integer> detectiveLocations = new ArrayList<>();
