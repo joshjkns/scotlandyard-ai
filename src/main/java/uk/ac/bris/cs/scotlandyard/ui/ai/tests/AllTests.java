@@ -5,7 +5,8 @@ package uk.ac.bris.cs.scotlandyard.ui.ai.tests;
  */
 public class AllTests {
     public static void main(String[] args) {
-     DuplicatePruningTests
+     DuplicatePruningTests;
+
     }
 }
 
