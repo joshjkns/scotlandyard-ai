@@ -17,5 +17,6 @@ public class TestingAi {
         testArray.add(move4);
         System.out.println(testArray);
         System.out.println(Filter.secretPruning(testArray));
+        //ScotlandYard.
     }
 }
