@@ -167,7 +167,8 @@ public class MTUltraFast implements Ai {
                 detectiveLocations.add(gameState.getDetectiveLocation((Piece.Detective) individualPlayer).get());
             }
         }
-        ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
+        ArrayList<Move> filteredMoves = Filter.secretPruning(new ArrayList<>(board.getAvailableMoves().asList()));
+        filteredMoves = Filter.duplicatePruning(filteredMoves, Piece.MrX.MRX);
         filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
         filteredMoves = Filter.killerMoves(filteredMoves,detectiveLocations,dijkstraAll,playerPieces,gameState);
         for (Move mrXMove : filteredMoves) {
@@ -186,13 +187,13 @@ public class MTUltraFast implements Ai {
         }
         ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(newState.getAvailableMoves().asList()), Piece.MrX.MRX);
         filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
-        System.out.println(depth);
-        System.out.println(filteredMoves);
+        //System.out.println(depth);
+        //System.out.println(filteredMoves);
         for (Move mrXMove : filteredMoves) { // from the newest state get all mrx moves and advance, create a child and add to its parent
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, 0);
             node.children.add(child);
-            if (depth < 13) {
+            if (depth < 7) {
                 //System.out.println(depth);
                 buildAllChildren(child, depth + 1);
             } else {
@@ -285,7 +286,7 @@ public class MTUltraFast implements Ai {
                 twoDList.add(intList);
             }
         }
-        System.out.println(twoDList);
+        //System.out.println(twoDList);
         return twoDList;
     }
 
