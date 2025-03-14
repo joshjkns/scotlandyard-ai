@@ -93,7 +93,7 @@ public class Filter {
             boolean singleMove = entry.getValue();
             if (singleMove) {
                 singleMoveMap.put(destination, move);
-                tempSecretFilter.add(move);
+                //tempSecretFilter.add(move);
             }
             // removing double moves that go to and back to the same spot
             if (!singleMove && (destination != move.source())) {
@@ -111,50 +111,87 @@ public class Filter {
         return new ArrayList<>(singleMoveMap.values());
     }
 
-    public static Map<Integer, Move> secretPruning(List<Move> moves) {
-        ArrayList<Move> secondLoopMoves = new ArrayList<>(moves);
-        ArrayList<ArrayList<Move>> secretFilter = new ArrayList<>();
-        //ArrayList<Move> returnMoves = new ArrayList<>();
-        Map<Integer, Move> returnMap = new HashMap<>();
-        for (Move firstMove : moves) {
-            Move.SingleMove firstSingleMove = (Move.SingleMove) firstMove;
-            for (Move secondMove : secondLoopMoves) {
-                Move.SingleMove secondSingleMove = (Move.SingleMove) secondMove;
-                if ((firstSingleMove.destination == secondSingleMove.destination) && (firstSingleMove != secondSingleMove)) {
-                    ArrayList<Move> tempSecretFilter = new ArrayList<>();
-                    tempSecretFilter.add(firstMove);
-                    tempSecretFilter.add(secondMove);
-                    secretFilter.add(tempSecretFilter);
+    public static ArrayList<Move> secretPruning(List<Move> moves) {
+        ArrayList<Move> returnMoves = new ArrayList<>();
+        Map<Integer, ArrayList<Move.SingleMove>> destinationsAndMoves = new HashMap<>();
+        ArrayList<Move> singleMoveList = doubleOrSingleFilter(moves, true);
+        ArrayList<Move> doubleMoveList = doubleOrSingleFilter(moves, false);
+        for (Move move : singleMoveList) {
+            Move.SingleMove singleMoveVersion = (Move.SingleMove) move;
+            int destination = move.accept(new Move.Visitor<Integer>() {
+                @Override
+                public Integer visit(Move.SingleMove move) {
+                    return move.destination;
                 }
-            }
-            secondLoopMoves.remove(firstMove);
-        }
-        System.out.println("bellow");
-        System.out.println(secretFilter);
-        for (ArrayList<Move> pair : secretFilter) {
-            for (Move indivdualMove : pair) {
-            }
-            Move.SingleMove m1 = (Move.SingleMove) pair.get(0);
-            Move.SingleMove m2 = (Move.SingleMove) pair.get(1);
-            if ((m1.ticket == ScotlandYard.Ticket.BUS) || (m1.ticket == ScotlandYard.Ticket.TAXI)) {
-                returnMap.put(m1.destination, m1);
-            }
-            if (m1.ticket == ScotlandYard.Ticket.UNDERGROUND) {
-                //System.out.println("yo");
-                returnMap.put(m2.destination, m2);
-            }
-            if ((m2.ticket == ScotlandYard.Ticket.BUS) || (m2.ticket == ScotlandYard.Ticket.TAXI)) {
-                returnMap.put(m2.destination, m2);
-            }
-            if (m2.ticket == ScotlandYard.Ticket.UNDERGROUND) {
-                returnMap.put(m1.destination, m1);
-            }
-            if ((m2.ticket == ScotlandYard.Ticket.SECRET) && (m1.ticket == ScotlandYard.Ticket.SECRET)) {
-                returnMap.put(m1.destination, m1);
+
+                @Override
+                public Integer visit(Move.DoubleMove move) {
+                    return move.destination2;
+                }
+            });
+            if (destinationsAndMoves.containsKey(destination)) {
+                destinationsAndMoves.get(destination).add(singleMoveVersion);
+            } else {
+                ArrayList<Move.SingleMove> tempList = new ArrayList<>();
+                tempList.add(singleMoveVersion);
+                destinationsAndMoves.put(destination, tempList);
             }
         }
-        return returnMap;
+        for (ArrayList<Move.SingleMove> movesList : destinationsAndMoves.values()) {
+            ArrayList<Move.SingleMove> orderedMovesList = new ArrayList<>();
+            orderedMovesList.addAll(movesList.stream().filter(move -> move.ticket.equals(ScotlandYard.Ticket.TAXI)).toList());
+            orderedMovesList.addAll(movesList.stream().filter(move -> move.ticket.equals(ScotlandYard.Ticket.BUS)).toList());
+            orderedMovesList.addAll(movesList.stream().filter(move -> move.ticket.equals(ScotlandYard.Ticket.SECRET)).toList());
+            orderedMovesList.addAll(movesList.stream().filter(move -> move.ticket.equals(ScotlandYard.Ticket.UNDERGROUND)).toList());
+            returnMoves.add(orderedMovesList.get(0));
+        }
+        returnMoves.addAll(doubleMoveList);
+        return returnMoves;
     }
+
+
+//        ArrayList<Move> secondLoopMoves = new ArrayList<>(moves);
+//        ArrayList<ArrayList<Move>> secretFilter = new ArrayList<>();
+//        //ArrayList<Move> returnMoves = new ArrayList<>();
+//        Map<Integer, Move> returnMap = new HashMap<>();
+//        for (Move firstMove : moves) {
+//            Move.SingleMove firstSingleMove = (Move.SingleMove) firstMove;
+//            for (Move secondMove : secondLoopMoves) {
+//                Move.SingleMove secondSingleMove = (Move.SingleMove) secondMove;
+//                if ((firstSingleMove.destination == secondSingleMove.destination) && (firstSingleMove != secondSingleMove)) {
+//                    ArrayList<Move> tempSecretFilter = new ArrayList<>();
+//                    tempSecretFilter.add(firstMove);
+//                    tempSecretFilter.add(secondMove);
+//                    secretFilter.add(tempSecretFilter);
+//                }
+//            }
+//            secondLoopMoves.remove(firstMove);
+//        }
+//        System.out.println("bellow");
+//        System.out.println(secretFilter);
+//        for (ArrayList<Move> pair : secretFilter) {
+//            for (Move indivdualMove : pair) {
+//            }
+//            Move.SingleMove m1 = (Move.SingleMove) pair.get(0);
+//            Move.SingleMove m2 = (Move.SingleMove) pair.get(1);
+//            if ((m1.ticket == ScotlandYard.Ticket.BUS) || (m1.ticket == ScotlandYard.Ticket.TAXI)) {
+//                returnMap.put(m1.destination, m1);
+//            }
+//            if (m1.ticket == ScotlandYard.Ticket.UNDERGROUND) {
+//                //System.out.println("yo");
+//                returnMap.put(m2.destination, m2);
+//            }
+//            if ((m2.ticket == ScotlandYard.Ticket.BUS) || (m2.ticket == ScotlandYard.Ticket.TAXI)) {
+//                returnMap.put(m2.destination, m2);
+//            }
+//            if (m2.ticket == ScotlandYard.Ticket.UNDERGROUND) {
+//                returnMap.put(m1.destination, m1);
+//            }
+//            if ((m2.ticket == ScotlandYard.Ticket.SECRET) && (m1.ticket == ScotlandYard.Ticket.SECRET)) {
+//                returnMap.put(m1.destination, m1);
+//            }
+//        }
+
 
     public static ArrayList<Move> filterIrrelevantMoves(List<Move> moves, Piece playerPiece, Map<Integer, Double> dijkstraResult) {
         ArrayList<Move> returnMoves = new ArrayList<>();      //??if mrX is at least 2 away from the closest move destination?? <- dunno if it's needed, and the edge is 2 away from the closest move destination, then eliminate if mrX moves are only single moves, hence all the detectives are not close to each-other, is such a way that their interaction would affect the miniMax tree

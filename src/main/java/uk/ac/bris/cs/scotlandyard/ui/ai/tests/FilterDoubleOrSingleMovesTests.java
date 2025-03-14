@@ -21,10 +21,8 @@ public class FilterDoubleOrSingleMovesTests {
         testArray.add(new Move.SingleMove(ScotlandYard.ALL_PIECES.get(0),181, ScotlandYard.Ticket.SECRET,65));
         answerArray.add(new Move.SingleMove(ScotlandYard.ALL_PIECES.get(0),181, ScotlandYard.Ticket.SECRET,65));
         ArrayList<Move> newArray = Filter.doubleOrSingleFilter(testArray,true);
-        try {
-            assert (newArray == testArray);
-        } catch (Exception e) {
-            System.out.println("Test Failed: testFilterSingleMoves " + e);
+        if (!newArray.equals(answerArray)) {
+            System.out.println("Test Failed: testFilterSingleMoves [T2.1]");
         }
     }
 
@@ -41,31 +39,23 @@ public class FilterDoubleOrSingleMovesTests {
         testArray.add(new Move.SingleMove(ScotlandYard.ALL_PIECES.get(0),181, ScotlandYard.Ticket.TAXI,44));
         testArray.add(new Move.SingleMove(ScotlandYard.ALL_PIECES.get(0),181, ScotlandYard.Ticket.SECRET,65));
         ArrayList<Move> newArray = Filter.doubleOrSingleFilter(testArray,false);
-        try {
-            assert (newArray == testArray);
-        } catch (Exception e) {
-            System.out.println("Test Failed: testFilterDoubleMoves " + e);
+        if (!newArray.equals(answerArray)) {
+            System.out.println("Test Failed: testFilterDoubleMoves [T2.2]");
         }
     }
 
-    public static void testFilterNoMoves() {
+    public static void testEmptyInput() {
         ArrayList<Move> testArray = new ArrayList<>();
         ArrayList<Move> answerArray1 = Filter.doubleOrSingleFilter(testArray,false);
         ArrayList<Move> answerArray2 = Filter.doubleOrSingleFilter(testArray,true);
-        try {
-            assert (answerArray1.size() == 0);
-        } catch (Exception e) {
-            System.out.println("Test Failed: Should return no moves " + e);
-        }
-        try {
-            assert (answerArray1.size() == 0);
-        } catch (Exception e) {
-            System.out.println("Test Failed: Should return no moves " + e);
+        if (!answerArray1.isEmpty() || !answerArray2.isEmpty()) {
+            System.out.println("Test Failed: Should return no values [T2.3]");
         }
     }
 
     public static void main() {
-        testFilterDoubleMoves();
         testFilterSingleMoves();
+        testFilterDoubleMoves();
+        testEmptyInput();
     }
 }
