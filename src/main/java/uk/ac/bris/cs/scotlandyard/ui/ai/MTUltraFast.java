@@ -172,7 +172,6 @@ public class MTUltraFast implements Ai {
         }
         return bestMove;
     }
-
 //    public static void initialiseRootWithMrX(Node root, Board board) {
 //        ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
 //        filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
@@ -182,7 +181,6 @@ public class MTUltraFast implements Ai {
 //            root.children.add(child);
 //        }
 //    }
-
     public static void initialiseRootWithMrX(Node root, Board board, Board.GameState gameState) {
         ArrayList<Piece> playerPieces = new ArrayList<>(gameState.getPlayers());
         ArrayList<Integer> detectiveLocations = new ArrayList<>();
@@ -203,18 +201,21 @@ public class MTUltraFast implements Ai {
 
     public static void buildAllChildren(Node node, int depth) {
         Board.GameState newState = node.state;
-        if (!(node.state.getWinner().isEmpty())) return;
+        if (!(node.state.getWinner().isEmpty())) return; // if there is a winner it just stops
         ArrayList<Move> bestMoveList = bestArrayOfMoves(node);
         for (Move move : bestMoveList) { // advances 5x for the detectives
             if (newState.getWinner().isEmpty()) newState = newState.advance(move);
         }
         ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(newState.getAvailableMoves().asList()), Piece.MrX.MRX);
         filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
+        System.out.println(depth);
+        System.out.println(filteredMoves);
         for (Move mrXMove : filteredMoves) { // from the newest state get all mrx moves and advance, create a child and add to its parent
             Board.GameState mrXState = newState.advance(mrXMove);
             Node child = new Node(mrXState, node, mrXMove, 0);
             node.children.add(child);
-            if (depth < 10) {
+            if (depth < 13) {
+                //System.out.println(depth);
                 buildAllChildren(child, depth + 1);
             } else {
                 bestArrayOfMoves(child);
@@ -236,13 +237,13 @@ public class MTUltraFast implements Ai {
         }
     }
 
-    public static void printTree(Node node) {
-        if (!(node.children.isEmpty())) {
-            for (Node child : node.children) {
-                printTree(child);
-            }
-        }
-    }
+//    public static void printTree(Node node) {
+//        if (!(node.children.isEmpty())) {
+//            for (Node child : node.children) {
+//                printTree(child);
+//            }
+//        }
+//    }
 
     public static ArrayList<Move> bestArrayOfMoves(Node node) {
         List<Set<Integer>> twoDList = twoDArrayOfMoves(node);
