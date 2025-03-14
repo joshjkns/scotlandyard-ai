@@ -1,8 +1,7 @@
-package uk.ac.bris.cs.scotlandyard.ui.ai;
+package uk.ac.bris.cs.scotlandyard.ui.ai.Recources;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.ImmutableValueGraph;
-import uk.ac.bris.cs.scotlandyard.model.Board;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
 import java.util.HashMap;

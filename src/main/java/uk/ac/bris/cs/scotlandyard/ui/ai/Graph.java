@@ -5,6 +5,7 @@ import java.util.*;
 import com.google.common.graph.*;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
+import uk.ac.bris.cs.scotlandyard.ui.ai.Recources.Filter;
 
 class GraphThread extends Thread {
 	private final Move move;

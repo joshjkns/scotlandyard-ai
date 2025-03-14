@@ -1,7 +1,4 @@
-package uk.ac.bris.cs.scotlandyard.ui.ai.tests;
-
-import uk.ac.bris.cs.scotlandyard.model.Board;
-import uk.ac.bris.cs.scotlandyard.model.GameSetup;
+package uk.ac.bris.cs.scotlandyard.ui.ai.Tests;
 
 /**
  * Includes all test for the actual game model

@@ -1,11 +1,10 @@
-package uk.ac.bris.cs.scotlandyard.ui.ai;
+package uk.ac.bris.cs.scotlandyard.ui.ai.Recources;
 
 import uk.ac.bris.cs.scotlandyard.model.Board;
 import uk.ac.bris.cs.scotlandyard.model.Move;
 import uk.ac.bris.cs.scotlandyard.model.Piece;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
-import java.sql.Array;
 import java.util.*;
 
 public class Filter {

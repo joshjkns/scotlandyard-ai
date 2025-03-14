@@ -1,4 +1,4 @@
-package uk.ac.bris.cs.scotlandyard.ui.ai.tests;
+package uk.ac.bris.cs.scotlandyard.ui.ai.Tests;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import uk.ac.bris.cs.scotlandyard.model.*;
@@ -8,22 +8,15 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import java.nio.charset.StandardCharsets;
-
 import com.google.common.collect.*;
 import com.google.common.graph.ImmutableValueGraph;
-import com.google.common.io.Resources;
-import io.atlassian.fugue.Pair;
-import uk.ac.bris.cs.scotlandyard.model.*;
-import uk.ac.bris.cs.scotlandyard.ui.ai.Dijkstra;
+import uk.ac.bris.cs.scotlandyard.ui.ai.Recources.Dijkstra;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.*;
-import uk.ac.bris.cs.scotlandyard.ui.ai.*;
+
+import uk.ac.bris.cs.scotlandyard.ui.ai.Recources.Filter;
 
 public class IrrelevantMovesTest {
 
