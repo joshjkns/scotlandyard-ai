@@ -1,19 +1,41 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
 import uk.ac.bris.cs.scotlandyard.ui.ai.Resources.*;
 
+import javax.annotation.Nonnull;
+import java.sql.Array;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
-public class MCTSAi implements Ai {
+public class DetectiveMCTSAi implements Ai {
 
-    public class Node {
+    public class DetectiveMCTSThread extends Thread {
+        Node child;
+        int iterations;
+        Piece mover;
+        ArrayList<Move> finalMoveList;
+
+        public DetectiveMCTSThread(Node child, int iterations, Piece mover) {
+            this.child = child;
+            this.iterations = iterations;
+            this.mover = mover;
+        }
+
+        @Override
+        public void run() {
+            finalMoveList = mcts(child, iterations, mover);
+        }
+
+        public ArrayList<Move> getFinalMoveList() {
+            return finalMoveList;
+        }
+    }
+
+    public static class Node {
         Board.GameState state;
         Node parent;
         ArrayList<Node> children;
@@ -29,8 +51,12 @@ public class MCTSAi implements Ai {
             this.state = state;
             this.parent = parent;
             this.children = new ArrayList<>();
-            this.possibleMoves = new ArrayList<>(state.getAvailableMoves().asList());
-            this.possibleMoves = Filter.duplicatePruning(possibleMoves, mover);
+            if (state == null) {
+                this.possibleMoves = null;
+            } else {
+                this.possibleMoves = new ArrayList<>(state.getAvailableMoves().asList());
+                this.possibleMoves = Filter.duplicatePruning(this.possibleMoves, mover);
+            }
             this.visits = 0;
             this.value = 0;
             this.mover = mover;
@@ -97,24 +123,34 @@ public class MCTSAi implements Ai {
         }
     }
 
-    @Nonnull @Override public String name() { return "[MRX] MCTS"; }
+    @Nonnull @Override public String name() { return "[Detective] MCTS"; }
 
     @Nonnull
     @Override
     public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
         HashMap<ScotlandYard.Ticket, Integer> tempTicketMap = new HashMap<>();
+        ArrayList<Integer> mrXPossibleLocations = new ArrayList<>(Arrays.asList(35, 45, 51, 71, 78, 104, 106, 127, 132, 166, 170, 172));
+        ArrayList<Player> allMrX = new ArrayList<>();
         ArrayList<ScotlandYard.Ticket> tempTicketList = new ArrayList<>(Arrays.asList(ScotlandYard.Ticket.TAXI, ScotlandYard.Ticket.BUS, ScotlandYard.Ticket.UNDERGROUND, ScotlandYard.Ticket.DOUBLE, ScotlandYard.Ticket.SECRET));
         MyGameStateFactory factory = new MyGameStateFactory();
         ArrayList<Player> detectivesList = new ArrayList<>();
+        Piece firstMover = null;
         Player mrX = null;
-        int location = 0;
         for (Piece piece : board.getPlayers()) {
             for (ScotlandYard.Ticket ticket : tempTicketList) {
                 tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
             }
             if (piece.isMrX()){
-                location = board.getAvailableMoves().asList().get(0).source();
-                mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
+                if (board.getMrXTravelLog().size() >= 3) {
+                    int location = getLastMrXRevealLocation(board);
+                    if (location != -1) mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
+
+                } else {
+                    for (int possibleLocation : mrXPossibleLocations) {
+                        Player mrXTemp = new Player(piece, ImmutableMap.copyOf(tempTicketMap), possibleLocation);
+                        allMrX.add(mrXTemp);
+                    }
+                }
             } else {
                 Piece.Detective newDetective = (Piece.Detective) piece;
                 Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
@@ -122,10 +158,78 @@ public class MCTSAi implements Ai {
                 detectivesList.add(newPlayer);
             }
         }
-        Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
+        firstMover = board.getAvailableMoves().asList().get(0).commencedBy();
+        System.out.println(firstMover + "\n");
 
-        Node root = new Node (gameState,null, location, null, Piece.MrX.MRX);
-        return mcts(root, 1000);
+        ArrayList<Node> rootNodes = new ArrayList<>();
+
+        // making all possible starting states and adding to the root which is just a null root
+        if (board.getMrXTravelLog().size() >= 3) {
+            Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
+            Node root = new Node (gameState, null, mrX.location(), null, Piece.MrX.MRX);
+
+            ArrayList<Move> finalMoveList = mcts(root, 1000, firstMover);
+            double bestFreq = Double.NEGATIVE_INFINITY;
+            Move bestMove = null;
+            for (Move move : finalMoveList) {
+                double freq = Collections.frequency(finalMoveList, move);
+                if (freq > bestFreq) {
+                    bestFreq = freq;
+                    bestMove = move;
+                }
+            }
+            assert bestMove != null;
+            return bestMove;
+
+        } else {
+            for (Player mrXTemp : allMrX) {
+                Board.GameState gameState = factory.build(board.getSetup(), mrXTemp, ImmutableList.copyOf(detectivesList));
+                Node root = new Node (gameState,null, mrXTemp.location(), null, null); // each one of these has mrx moves in the state
+                rootNodes.add(root);
+            }
+
+            List<Move> finalSetOfMoves = new ArrayList<>();
+
+            ArrayList<DetectiveMCTSThread> threads = new ArrayList<>();
+
+            for (Node child : rootNodes) {
+                DetectiveMCTSThread thread = new DetectiveMCTSThread(child, 200, firstMover);
+                threads.add(thread);
+                thread.start();
+            }
+
+            for (DetectiveMCTSThread thread : threads) {
+                try {
+                    thread.join();
+                    finalSetOfMoves.addAll(thread.getFinalMoveList());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            Move bestMove = null;
+            double bestFreq = Double.NEGATIVE_INFINITY;
+
+            for (Move move: finalSetOfMoves) {
+                double freq = Collections.frequency(finalSetOfMoves, move);
+                if (freq > bestFreq) {
+                    bestFreq = freq;
+                    bestMove = move;
+                }
+            }
+
+            assert bestMove != null;
+            return bestMove;
+        }
+    }
+
+    public static Integer getLastMrXRevealLocation(Board board) {
+        int location = -1;
+        for (LogEntry entry : board.getMrXTravelLog()) {
+            if (entry.location().isPresent()) {
+                location = entry.location().get();
+            }
+        }
+        return location;
     }
 
     public static boolean hasWinner(Node node) {
@@ -137,15 +241,15 @@ public class MCTSAi implements Ai {
     }
 
     // main mcts function to search over n iterations and return the best move
-    public Move mcts(Node root, int iterations) {
+    public static ArrayList<Move> mcts(Node root, int iterations, Piece mover) {
         int currentIterations = 0;
 
         ArrayList<Move> rootMoves = new ArrayList<>(root.state.getAvailableMoves().asList());
 
-        // initialise all moves off the root node - MrX moves basically
+        // initialise all moves off each root node - mrx moves
         for (Move move : rootMoves) {
             Board.GameState newState = root.state.advance(move);
-            int newMrXLocation = root.mrXLocation;
+            int newMrXLocation = root.mrXLocation; // have to pick from a list of possible locations he could be in.
             if (move.commencedBy().isMrX()) {
                 newMrXLocation = getMrXLocationFromMove(move);
             }
@@ -153,19 +257,36 @@ public class MCTSAi implements Ai {
             root.children.add(child);
         }
 
+        ArrayList<Move> finalMovesList = new ArrayList<>();
+
         // loop through iterations
-        while (currentIterations < iterations) {
-            Node leaf = traverse(root); // get leaf node via traverse function
-            double value = playMove(leaf); // playMove function - random moves until game is over
-            backpropagate(leaf, value); // backpropagate through tree
-            currentIterations++; // iterate
+        for (Node child : root.children) {
+            for (Move move : child.state.getAvailableMoves()) {
+                Board.GameState newState = child.state.advance(move);
+                if (move.commencedBy() == mover) {
+                    Node grandChild = new Node(newState, child, child.mrXLocation, move, mover);
+                    child.children.add(grandChild);
+                }
+            }
+            System.out.println(child.children);
+            while (currentIterations < iterations) {
+                Node leaf = traverse(child); // get leaf node via traverse function
+                double value = playMove(leaf); // playMove function - random moves until game is over
+                backpropagate(leaf, value); // backpropagate through tree
+                currentIterations++; // iterate
+            }
+            Move finalMove = getMove(child);
+            if (finalMove.commencedBy() == mover) {
+                finalMovesList.add(finalMove);
+            }
+
         }
 
-        return getMove(root); // get the best move and use it
+        return finalMovesList;
     }
 
     // traverse function to traverse the tree
-    public Node traverse(Node node) {
+    public static Node traverse(Node node) {
         while (isExpanded(node) && !hasWinner(node)) {
             Node bestUCT = node.bestUCT(); // pick best uct and check it is not null
             if (bestUCT == null) {
@@ -187,7 +308,7 @@ public class MCTSAi implements Ai {
     }
 
     // getting mrx location to keep nodes updated using visitor
-    public int getMrXLocationFromMove(Move move) {
+    public static int getMrXLocationFromMove(Move move) {
         return move.accept(new Move.Visitor<>() { // visitor to get the destination
             @Override
             public Integer visit(Move.SingleMove move) {
@@ -202,7 +323,7 @@ public class MCTSAi implements Ai {
     }
 
     // back-propagating through tree to assign values to nodes
-    public void backpropagate(Node node, double value) {
+    public static void backpropagate(Node node, double value) {
         while (node != null) { // until node parent = null which is the root node
             node.visits += 1; // add one to visit
             node.value += value; // add to the nodes value
@@ -211,14 +332,13 @@ public class MCTSAi implements Ai {
     }
 
     // final move pick function
-    public Move getMove(Node root) {
+    public static Move getMove(Node root) {
         Node bestChild = null;
-        double bestVal = Double.NEGATIVE_INFINITY;
-
+        double bestVal = Double.POSITIVE_INFINITY;
         // ranking based on visits over values
         for (Node child : root.children) { // for child of the root node (mrx moves)
-            if (child.visits > bestVal) { // find the one that has the most visits
-                bestVal = child.visits; // that will be the bestChild / bestMove
+            if (child.value < bestVal) { // find the one that has the most visits
+                bestVal = child.value; // that will be the bestChild / bestMove
                 bestChild = child;
             }
         }
@@ -241,7 +361,7 @@ public class MCTSAi implements Ai {
     }
 
     // play the move to get the value of the move
-    public double playMove(Node node) {
+    public static double playMove(Node node) {
         Board.GameState state = node.getState();
         int mrXcurrentLocation = node.mrXLocation;
 
@@ -263,10 +383,10 @@ public class MCTSAi implements Ai {
     }
 
     // high values if a game ending outcome, else use dijkstra
-    public double getValue(Board.GameState state, int mrXLocation) {
+    public static double getValue(Board.GameState state, int mrXLocation) {
         if (!state.getWinner().isEmpty()) {
             if (state.getWinner().contains(Piece.MrX.MRX)) {
-                return 50; // mrx wins so +50
+                return 50; // mrx wins so 50
             } else {
                 return -50; // mrx loses so -50
             }
@@ -276,7 +396,7 @@ public class MCTSAi implements Ai {
     }
 
     // closest detective to mrx - considering one not all.
-    public double closestDetectiveDistance(Board.GameState state, int mrXLocation) {
+    public static double closestDetectiveDistance(Board.GameState state, int mrXLocation) {
         Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(state.getSetup().graph, mrXLocation);
         double closestDistance = Double.POSITIVE_INFINITY;
         // just loop through and keep track of the closest distance

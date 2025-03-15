@@ -1,4 +1,4 @@
-package uk.ac.bris.cs.scotlandyard.ui.ai.Recources;
+package uk.ac.bris.cs.scotlandyard.ui.ai.Resources;
 
 import uk.ac.bris.cs.scotlandyard.model.Board;
 import uk.ac.bris.cs.scotlandyard.model.Move;

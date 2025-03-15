@@ -1,4 +1,4 @@
-package uk.ac.bris.cs.scotlandyard.ui.ai.Recources;
+package uk.ac.bris.cs.scotlandyard.ui.ai.Resources;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.ImmutableValueGraph;

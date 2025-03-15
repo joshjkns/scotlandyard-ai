@@ -18,6 +18,8 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 import uk.ac.bris.cs.scotlandyard.model.Piece.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
+import uk.ac.bris.cs.scotlandyard.ui.ai.Resources.*;
+
 
 public class DetectiveAi implements Ai {
 
@@ -77,49 +79,6 @@ public class DetectiveAi implements Ai {
         }
     }
 
-    public static Map<Integer, Double> dijkstra(Board.GameState board, int source){
-        ImmutableValueGraph<Integer, ImmutableSet<ScotlandYard.Transport>> valueGraph = board.getSetup().graph;
-        Map<Integer, Double> distances = new HashMap<>();
-        Map<Integer, Boolean> visited = new HashMap<>();
-
-        // assign all node to +inf
-        for (int i = 1; i <= 199; i++) {
-            distances.put(i, Double.POSITIVE_INFINITY);
-            visited.put(i, false);
-        }
-
-        // source node set to 0.
-        distances.put(source, 0.0);
-        visited.put(source, true);
-
-        // loop through while not visited and assign distances to each node from source
-        while (visited.containsValue(false)) {
-            for (Map.Entry<Integer, Double> entry : distances.entrySet()) { // entry.getKey() is every node
-                if (visited.get(entry.getKey())){ // visited = true
-                    Set<Integer> adjNodes = valueGraph.adjacentNodes(entry.getKey());
-                    for (int nextNode : adjNodes){
-                        if (!visited.get(nextNode)){
-                            if (valueGraph.edgeValue(entry.getKey(), nextNode).get().stream().anyMatch(t -> t.requiredTicket() == Ticket.SECRET)) {
-                                break;
-                            }
-                            double newDistance = entry.getValue() + 1;
-                            if (newDistance < distances.get(nextNode)) {
-                                distances.put(nextNode, newDistance);
-                            }
-                        }
-                    }
-                }
-            }
-            // check if nodes have been visited and set them correctly.
-            for (Map.Entry<Integer, Double> entry : distances.entrySet()){
-                if (entry.getValue() != Double.POSITIVE_INFINITY) {
-                    visited.put(entry.getKey(), true);
-                }
-            }
-        }
-        return distances;
-    }
-
     // function to maximise distance from all detectives to one another - for first 3 moves of game before reveal move.
     public static Move maxDistanceToDetectives(Board board, Board.GameState gameState, ArrayList<Player> detectivesList, Player currentDetective){
         //int source = currentDetective.location();
@@ -138,7 +97,7 @@ public class DetectiveAi implements Ai {
                         return move.destination2;
                     }
                 });
-                Map<Integer, Double> dijkstraResult = dijkstra(gameState, destination);
+                Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState.getSetup().graph, destination);
                 for (Player individualDetective : detectivesList){
                     moveTotal += dijkstraResult.get(individualDetective.location());
                 }
@@ -152,7 +111,7 @@ public class DetectiveAi implements Ai {
     // function to minimise the distance from the last mrx reveal move
     public static Move minDistanceToMrx(Board board, Board.GameState gameState, ArrayList<Player> detectivesList, Player currentDetective, int lastLocation){
         Map<Double, Move> moveMap = new HashMap<>();
-        Map<Integer, Double> dijkstraResult = dijkstra(gameState, lastLocation);
+        Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation);
         for (Move individualMove : board.getAvailableMoves()){ // for all available moves
             if (individualMove.commencedBy() == currentDetective.piece()){
                 int destination = individualMove.accept(new Move.Visitor<>() {

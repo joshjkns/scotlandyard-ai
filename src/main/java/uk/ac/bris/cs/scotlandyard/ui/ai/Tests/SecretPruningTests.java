@@ -2,7 +2,7 @@ package uk.ac.bris.cs.scotlandyard.ui.ai.Tests;
 
 import uk.ac.bris.cs.scotlandyard.model.Move;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
-import uk.ac.bris.cs.scotlandyard.ui.ai.Recources.Filter;
+import uk.ac.bris.cs.scotlandyard.ui.ai.Resources.*;
 
 import java.util.ArrayList;
 

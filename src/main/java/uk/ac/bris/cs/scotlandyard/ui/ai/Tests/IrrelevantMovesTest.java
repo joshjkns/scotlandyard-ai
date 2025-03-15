@@ -10,13 +10,11 @@ import java.nio.charset.StandardCharsets;
 
 import com.google.common.collect.*;
 import com.google.common.graph.ImmutableValueGraph;
-import uk.ac.bris.cs.scotlandyard.ui.ai.Recources.Dijkstra;
+import uk.ac.bris.cs.scotlandyard.ui.ai.Resources.*;
 
 import java.util.*;
 
 import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.*;
-
-import uk.ac.bris.cs.scotlandyard.ui.ai.Recources.Filter;
 
 public class IrrelevantMovesTest {
 
