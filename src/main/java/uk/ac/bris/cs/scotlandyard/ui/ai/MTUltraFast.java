@@ -151,16 +151,6 @@ public class MTUltraFast implements Ai {
         return bestMove;
     }
 
-//    public static void initialiseRootWithMrX(Node root, Board board) {
-//        ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
-//        filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
-//        for (Move mrXMove : filteredMoves) {
-//            Board.GameState newState = root.state.advance(mrXMove);
-//            Node child = new Node(newState, root, mrXMove, 0);
-//            root.children.add(child);
-//        }
-//    }
-
     public static void initialiseRootWithMrX(Node root, Board board, Board.GameState gameState) {
         ArrayList<Piece> playerPieces = new ArrayList<>(gameState.getPlayers());
         ArrayList<Integer> detectiveLocations = new ArrayList<>();
@@ -217,14 +207,6 @@ public class MTUltraFast implements Ai {
             return node.value;
         }
     }
-
-//    public static void printTree(Node node) {
-//        if (!(node.children.isEmpty())) {
-//            for (Node child : node.children) {
-//                printTree(child);
-//            }
-//        }
-//    }
 
     public static ArrayList<Move> bestArrayOfMoves(Node node) {
         List<Set<Integer>> twoDList = twoDArrayOfMoves(node);
