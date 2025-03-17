@@ -11,8 +11,7 @@ import com.google.common.graph.ImmutableValueGraph;
 import com.google.common.io.Resources;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
-import uk.ac.bris.cs.scotlandyard.ui.ai.Recources.Dijkstra;
-import uk.ac.bris.cs.scotlandyard.ui.ai.Recources.Filter;
+import uk.ac.bris.cs.scotlandyard.ui.ai.Resources.*;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
