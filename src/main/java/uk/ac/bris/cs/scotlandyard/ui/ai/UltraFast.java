@@ -116,8 +116,6 @@ public class UltraFast implements Ai {
         traverseTree(root);
         Move bestMove = null;
         for (Node child : root.children) {
-            for (Node grandchild : child.children){
-            }
             if (child.value == root.value) {
                 bestMove = child.move;
             }

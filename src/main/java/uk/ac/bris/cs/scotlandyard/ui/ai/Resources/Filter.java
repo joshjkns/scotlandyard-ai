@@ -35,8 +35,6 @@ public class Filter {
 
     public static ArrayList<Move> duplicatePruning(List<Move> moves, Piece mover) {
         Map.Entry<Integer, Boolean> entry;
-        ArrayList<ArrayList<Move>> secretFilter = new ArrayList<>();
-        ArrayList<Move> tempSecretFilter = new ArrayList<>();
         Map<Integer, Move> singleMoveMap = new HashMap<>();
         Map<Integer, Move> doubleMoveMap = new HashMap<>();
         Collections.shuffle(moves);
