@@ -19,7 +19,7 @@ public class NoGraphAiTotal implements Ai {
 
     ArrayList<Move> mrXMoves = new ArrayList<>();
 
-    @Nonnull @Override public String name() { return "[MRX] 6 layer total (No Graph)"; }
+    @Nonnull @Override public String name() { return "[MRX] No Graph AI Total"; }
 
     @Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
         HashMap<Ticket, Integer> tempTicketMap = new HashMap<>();
