@@ -110,7 +110,7 @@ public class Filter {
     }
 
     public static ArrayList<Move> filterIrrelevantMoves(List<Move> moves, Piece playerPiece, Map<Integer, Double> dijkstraResult) {
-        ArrayList<Move> returnMoves = new ArrayList<>();      //??if mrX is at least 2 away from the closest move destination?? <- dunno if it's needed, and the edge is 2 away from the closest move destination, then eliminate if mrX moves are only single moves, hence all the detectives are not close to each-other, is such a way that their interaction would affect the miniMax tree
+        ArrayList<Move> returnMoves = new ArrayList<>();
         ArrayList<Move> temporaryMoves = new ArrayList<>();
         for (Move individualMove : moves) {
             if (individualMove.commencedBy() == playerPiece) {
@@ -154,67 +154,6 @@ public class Filter {
             }
         }
         return returnMoves;
-
-//        if (temporaryMoves.size() <= 3) {
-//            return temporaryMoves;
-//        }
-//        else{
-//            temporaryMoves3 = temporaryMoves;
-//            for (Move irrelevantMove : temporaryMoves ) {
-//                double smallest = Double.POSITIVE_INFINITY;
-//                Move smallestMove = null;
-//                for (Move individualMove : temporaryMoves3) {
-//                    int destination = individualMove.accept(new Move.Visitor<Integer>() {
-//                        @Override
-//                        public Integer visit(Move.SingleMove move) {
-//                            return move.destination;
-//                        }
-//
-//                        @Override
-//                        public Integer visit(Move.DoubleMove move) {
-//                            return move.destination2;
-//                        }
-//                    });
-//                    if (dijkstraResult.get(destination) < smallest) {
-//                        smallest = dijkstraResult.get(destination);
-//                        smallestMove = individualMove;
-//                    }
-//                }
-//                temporaryMoves2.add(smallestMove);
-//                temporaryMoves3.remove(smallestMove);
-//            }
-//            int minDestination = temporaryMoves2.get(0).accept(new Move.Visitor<Integer>() {
-//                @Override
-//                public Integer visit(Move.SingleMove move) {
-//                    return move.destination;
-//                }
-//
-//                @Override
-//                public Integer visit(Move.DoubleMove move) {
-//                    return move.destination2;
-//                }
-//            });
-//            double smallestMove = dijkstraResult.get(minDestination);
-//            int count = 1;
-//            for (Move individualMove : temporaryMoves2){
-//                int destination = individualMove.accept(new Move.Visitor<Integer>() {
-//                    @Override
-//                    public Integer visit(Move.SingleMove move) {
-//                        return move.destination;
-//                    }
-//
-//                    @Override
-//                    public Integer visit(Move.DoubleMove move) {
-//                        return move.destination2;
-//                    }
-//                });
-//                if ((count <= 3) || (dijkstraResult.get(destination) == smallestMove)){
-//                    returnMoves.add(individualMove);
-//                }
-//                count++;
-//            }
-//        }
-        //return returnMoves;
     }
 
     public static ArrayList<Move> killerMoves(ArrayList<Move> mrXmoves, ArrayList<Integer> detectivesLocations, Map<Integer, Map<Integer, Double>> dijkstraAll, ArrayList<Piece> Players, Board.GameState gameState) {
@@ -237,8 +176,8 @@ public class Filter {
             for (Move doubleMove : Filter.doubleOrSingleFilter(gameState.getAvailableMoves().asList(), false)) {
                 double tempTotal = 0;
                 Move.DoubleMove mrXTemp = (Move.DoubleMove) doubleMove;
-                Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXTemp.destination2); // was originally from source rather than where he
-                for (Piece playerPiece : Players) { // was going to be after the move
+                Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXTemp.destination2); 
+                for (Piece playerPiece : Players) { 
                     if (playerPiece.isDetective()){
                         for (Integer detectivesLocation : detectivesLocations) {
                             tempTotal += tempDijkstras.get(detectivesLocation);
