@@ -53,13 +53,7 @@ public class NoGraphAiTotal implements Ai {
 
         ArrayList<Move> moves = new ArrayList<Move>(gameState.getAvailableMoves().asList());
 
-        //ArrayListMultimap<Move, Integer> movesMultimap = ArrayListMultimap.create();
-        //filterIrrelevantMoves(moves,gameState,movesMultimap);
-        //System.out.println(movesMultimap);
-
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
-        //playerList.add(MrX.MRX);
-        //playerList.add(Piece.Detective.RED);
 
         ArrayList<Move> newMoves = Filter.duplicatePruning(moves, Piece.MrX.MRX);
         newMoves = noRepeatMoves(newMoves);
@@ -93,31 +87,25 @@ public class NoGraphAiTotal implements Ai {
 
         }
 
-        System.out.println(finalMap);
         mrXMoves.add(chosenMove);
         assert chosenMove != null;
         return chosenMove;
     }
 
     public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, Board.GameState gameState, ArrayListMultimap<Double, Move> finalMap, List<Move> moves, double alpha, double beta) {
-        //System.out.println(mover);
         double bestVal = 0;
         double value = 0;
         ArrayList<Piece> tempPlayers = new ArrayList<>(players);
 
         Piece mover = tempPlayers.get(0); // remove current player
-        //tempPlayers.remove(0);
-        //System.out.println(mover);
         if (tempPlayers.size() != 1) {
             tempPlayers.remove(0);
         }
         if (tempPlayers.isEmpty()) { // leaf node
-            //Detective lastPiece = (Detective) gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1);
             Detective lastPiece = (Detective) mover;
             return dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get());
         }
 
-        //System.out.println(mover);
         if (mover.isMrX()) {
             bestVal = Double.NEGATIVE_INFINITY;
 
@@ -159,7 +147,6 @@ public class NoGraphAiTotal implements Ai {
                     }
                 }
 
-                System.out.println(newMoves);
                 value = miniMax(tempDijkstraResult, tempPlayers, newState, finalMap, Filter.duplicatePruning(newMoveList, tempPlayers.get(0)), alpha, beta);
                 if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
                 bestVal = Math.max(value, bestVal);
@@ -178,7 +165,6 @@ public class NoGraphAiTotal implements Ai {
             bestVal = Double.POSITIVE_INFINITY;
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
-                //System.out.println(mover);
                 return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they don't have moves just return the distance to them.
             }
             for (Move move : moveList) {

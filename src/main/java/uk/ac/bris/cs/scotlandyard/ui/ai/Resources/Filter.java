@@ -57,16 +57,12 @@ public class Filter {
             boolean singleMove = entry.getValue();
             if (singleMove) {
                 singleMoveMap.put(destination, move);
-                //tempSecretFilter.add(move);
             }
             // removing double moves that go to and back to the same spot
             if (!singleMove && (destination != move.source())) {
                 doubleMoveMap.put(destination, move);
             }
         }
-        //System.out.println(tempSecretFilter);
-        //singleMoveMap = secretPruning(tempSecretFilter);
-        //System.out.println(singleMoveMap);
         for (int tempDestination : doubleMoveMap.keySet()) {
             if (!(singleMoveMap.containsKey(tempDestination))) {
                 singleMoveMap.put(tempDestination, doubleMoveMap.get(tempDestination));
@@ -230,21 +226,18 @@ public class Filter {
             for (Move detectiveMove : newState.getAvailableMoves()) {
                 Move.SingleMove DetectiveTemp = (Move.SingleMove) detectiveMove;
                 if (DetectiveTemp.destination == mrXTemp.destination) {
-                    //System.out.println(detectiveMove.commencedBy());
                     couldBeKilled += 1;
                 }
             }
         }
 
         if (couldBeKilled > 1){
-            //System.out.println("hi");
             double bestTotal = Double.NEGATIVE_INFINITY;
             Move bestMove = null;
             for (Move doubleMove : Filter.doubleOrSingleFilter(gameState.getAvailableMoves().asList(), false)) {
                 double tempTotal = 0;
                 Move.DoubleMove mrXTemp = (Move.DoubleMove) doubleMove;
                 Map<Integer,Double> tempDijkstras = dijkstraAll.get(mrXTemp.destination2); // was originally from source rather than where he
-                //System.out.println(tempDijkstras);
                 for (Piece playerPiece : Players) { // was going to be after the move
                     if (playerPiece.isDetective()){
                         for (Integer detectivesLocation : detectivesLocations) {

@@ -101,8 +101,6 @@ public class GraphAi implements Ai {
 		for (Board.GameState individualGameState : finalMap.values()){
 			printMap.add(graph.edgeValue(gameState,individualGameState).get());
 		}
-		System.out.println(printMap);
-		System.out.println(finalMap);
 
     assert chosenMove != null;
     return chosenMove;
@@ -128,7 +126,6 @@ public class GraphAi implements Ai {
 				}
 				if (totalDistances <= gameState.getPlayers().size() * 2) {
 					filteredMoves = Filter.doubleOrSingleFilter(moves, false);
-					System.out.println(filteredMoves);
 				}
 				if ((totalDistances > gameState.getPlayers().size() * 2) || filteredMoves.isEmpty()){
 					filteredMoves = Filter.doubleOrSingleFilter(moves, true);
@@ -136,10 +133,6 @@ public class GraphAi implements Ai {
 			}
 			if (mover.isDetective()) {
 				filteredMoves = moves;
-			}
-			//eliminateMoves(moves,false)
-			if (filteredMoves.isEmpty()){
-				System.out.println("hello");
 			}
 			for (Move move : filteredMoves) {
 				if (move.commencedBy() == mover) {

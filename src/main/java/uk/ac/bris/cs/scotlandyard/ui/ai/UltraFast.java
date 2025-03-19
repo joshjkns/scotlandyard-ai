@@ -228,9 +228,6 @@ public class UltraFast implements Ai {
                     if (piece == move.commencedBy()) {
                         Move.SingleMove singleMove = (Move.SingleMove) move;
                         intList.add(singleMove.destination);
-//                        List<Integer> test = List.copyOf(intList);
-//                        List<Double> test2 = test.stream().map(x -> dijkstraAll.get(node.location).get(x)).toList();
-//                        System.out.println("MOVER: " + move.commencedBy() +"VALUES: " + test2);
                     }
                 }
                 twoDList.add(intList);

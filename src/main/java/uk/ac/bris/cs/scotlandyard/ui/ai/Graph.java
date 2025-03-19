@@ -26,7 +26,6 @@ class GraphThread extends Thread {
 
 	@Override
     public void run() {
-        System.out.println(Thread.currentThread().getName());
         if (move.commencedBy() == mover) {
             Board.GameState newState = gameState.advance(move);
 
@@ -60,7 +59,6 @@ public class Graph {
 				}
 				if (totalDistances <= gameState.getPlayers().size() * 2) {
 					filteredMoves = Filter.doubleOrSingleFilter(moves, false);
-					System.out.println(filteredMoves);
 				}
 				if ((totalDistances > gameState.getPlayers().size() * 2) || filteredMoves.isEmpty()){
 					filteredMoves = Filter.doubleOrSingleFilter(moves, true);
@@ -69,15 +67,10 @@ public class Graph {
 			if (mover.isDetective()) {
 				filteredMoves = moves;
 			}
-			//eliminateMoves(moves,false)
-			if (filteredMoves.isEmpty()){
-				System.out.println("hello");
-			}
 			List<Thread> threads = new ArrayList<>();
 
 			for (Move move : filteredMoves) {
 				// only wanna make a thread if its MrX on first go.
-				System.out.println(move.commencedBy() + "" + filteredMoves);
 				if (mover.isMrX()) {
 					GraphThread newThread = new GraphThread(move, mover, gameState, graph, tempRemainingList, dijkstraResult);
 					threads.add(newThread);

@@ -108,8 +108,6 @@ public class MTGraphAi implements Ai {
 			}
 			
 		}
-		// System.out.println(printMap);
-		// System.out.println(finalMap);
 
 		mrXMoves.add(chosenMove);
     assert chosenMove != null;
@@ -130,7 +128,6 @@ public class MTGraphAi implements Ai {
 			if (mover.isDetective()) {
 				intermediate = dijkstraResult.get(state.getDetectiveLocation((Detective) mover).get());
 			}
-			// System.out.println(graph.nodes().contains(state) + " " + state);
 			if (!(graph.nodes().contains(state))) {
 				return 0;
 			}
@@ -168,7 +165,6 @@ public class MTGraphAi implements Ai {
 	
 			else {
 				bestVal = Double.POSITIVE_INFINITY;
-				// System.out.println(graph.successors(state));
 				for (Board.GameState child : graph.successors(state)) {
 					value = miniMax(child, graph, alpha, beta, dijkstraResult, tempRemainingList, finalMap);
 					bestVal = Math.min(bestVal, value);

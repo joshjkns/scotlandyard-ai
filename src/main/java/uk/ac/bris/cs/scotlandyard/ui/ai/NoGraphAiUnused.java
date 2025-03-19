@@ -98,30 +98,24 @@ public class NoGraphAiUnused implements Ai {
             }
         }
 
-        System.out.println(finalMap);
         assert chosenMove != null;
         return chosenMove;
     }
 
     public static double miniMax(Map<Integer,Double> dijkstraResult, ArrayList<Piece> players, Board.GameState gameState, ArrayListMultimap<Double, Move> finalMap, List<Move> moves) {
-        //System.out.println(mover);
         double bestVal = 0;
         double value = 0;
         ArrayList<Piece> tempPlayers = new ArrayList<>(players);
 
         Piece mover = tempPlayers.get(0); // remove current player
-        //tempPlayers.remove(0);
-        //System.out.println(mover);
         if (tempPlayers.size() != 1) {
             tempPlayers.remove(0);
         }
         if (tempPlayers.isEmpty()) { // leaf node
-            //Detective lastPiece = (Detective) gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1);
             Detective lastPiece = (Detective) mover;
             return dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get());
         }
 
-        //System.out.println(mover);
         if (mover.isMrX()) {
             bestVal = Double.NEGATIVE_INFINITY;
 
@@ -134,7 +128,6 @@ public class NoGraphAiUnused implements Ai {
             }
             if (detectiveTotal <= gameState.getPlayers().size() * 2) {
                 moveList = Filter.doubleOrSingleFilter(moves, false);
-                //System.out.println(moveList);
             }
             if (!(detectiveTotal <= gameState.getPlayers().size() * 2) || moveList.isEmpty()) {
                 moveList = Filter.doubleOrSingleFilter(moves, true);
@@ -164,7 +157,6 @@ public class NoGraphAiUnused implements Ai {
             bestVal = Double.POSITIVE_INFINITY;
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
-                //System.out.println(mover);
                 return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they dont have moves just return the distance to them.
             }
             for (Move move : moveList) {

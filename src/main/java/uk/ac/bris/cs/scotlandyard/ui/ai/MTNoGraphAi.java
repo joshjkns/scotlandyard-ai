@@ -106,10 +106,6 @@ public class MTNoGraphAi implements Ai {
 
         ArrayList<Move> moves = new ArrayList<Move>(gameState.getAvailableMoves().asList());
 
-        //ArrayListMultimap<Move, Integer> movesMultimap = ArrayListMultimap.create();
-        //filterIrrelevantMoves(moves,gameState,movesMultimap);
-        //System.out.println(movesMultimap);
-
         ArrayList<Piece> playerList = new ArrayList<>(gameState.getPlayers().asList());
         playerList.add(MrX.MRX);
         playerList.add(Piece.Detective.RED);
