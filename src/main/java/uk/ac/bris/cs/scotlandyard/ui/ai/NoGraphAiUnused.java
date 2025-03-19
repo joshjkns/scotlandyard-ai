@@ -57,7 +57,7 @@ public class NoGraphAiUnused implements Ai {
             }
         }
 
-        // looping through moves to get mrX source - why are we doign this
+        // looping through moves to get mrX source
         ArrayList<Move> moves = new ArrayList<Move>(gameState.getAvailableMoves().asList());
         int source = 0;
         for (Move move : gameState.getAvailableMoves()) {
@@ -74,7 +74,7 @@ public class NoGraphAiUnused implements Ai {
 
         Move chosenMove = null;
         double maxDistance = -1;
-        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation); // dijkstra called on prev location of mrX
+        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation); // dijkstra's called on prev location of mrX
         for (Move tempMove : finalMap.get(bestVal)) { // looping through the potential duplicate value moves
             if (maxDistance == -1) { // assign chosenMove to tempMove to prevent null.
                 chosenMove = tempMove;
@@ -121,6 +121,7 @@ public class NoGraphAiUnused implements Ai {
 
             double detectiveTotal = 0;
             ArrayList<Move> moveList = new ArrayList<>(moves);
+            //if the detectives average a distance of 2 from mrX, then he can use double moves
             for (Piece detective : players) {
                 if (detective.isDetective()) {
                     detectiveTotal += dijkstraResult.get(gameState.getDetectiveLocation((Detective) detective).get());

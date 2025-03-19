@@ -81,22 +81,28 @@ public class MTNoGraphAi implements Ai {
         ArrayList<Player> detectivesList = new ArrayList<>();
         Player mrX = null;
         int location = 0;
+        // creating temporary gamestate to allow advance() to be used.
+        // for all pieces
         for (Piece piece : board.getPlayers()) {
             for (Ticket ticket : tempTicketList) {
+                // put their tickets into a map with each ticket type and the number of them.
                 tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
             }
-            if (piece.isMrX()){
+            if (piece.isMrX()){ // if piece is mrx, get his location and create his player
                 location = board.getAvailableMoves().asList().get(0).source();
                 mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
             } else {
+                // cast piece to a detective and get their location before making their player.
                 Detective newDetective = (Detective) piece;
                 Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
                 Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), detectiveLocation.get());
                 detectivesList.add(newPlayer);
             }
         }
+        // get the gamestate from the list of players, mrx and the setup
         Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
+        // lastlocation is set to location unless he has made a reveal move - tries to get away due to players naturally going there.
         int lastLocation = location;
         for (LogEntry entry : board.getMrXTravelLog()) {
             if (entry.location().isPresent()) {
@@ -118,9 +124,9 @@ public class MTNoGraphAi implements Ai {
 
         Move chosenMove = null;
         double maxDistance = -1;
-        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation);
-        for (Move tempMove : finalMap.get(bestVal)) {
-            if (maxDistance == -1) {
+        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation); // dijkstra's called on prev location of mrX
+        for (Move tempMove : finalMap.get(bestVal)) { // looping through the potential duplicate value moves
+            if (maxDistance == -1) { // assign chosenMove to tempMove to prevent null.
                 chosenMove = tempMove;
             }
             int destination = tempMove.accept(new Move.Visitor<>() {
@@ -134,6 +140,7 @@ public class MTNoGraphAi implements Ai {
                     return move.destination2;
                 }
             });
+            // pick the move that is furthest away from the last location.
             double distance = dijkstraLastLocation.get(destination);
             if (distance > maxDistance) {
                 maxDistance = distance;
@@ -159,7 +166,6 @@ public class MTNoGraphAi implements Ai {
             tempPlayers.remove(0);
         }
         if (tempPlayers.isEmpty()) { // leaf node
-            //Detective lastPiece = (Detective) gameState.getPlayers().asList().get(gameState.getPlayers().size() - 1);
             Detective lastPiece = (Detective) mover;
             return dijkstraResult.get(gameState.getDetectiveLocation(lastPiece).get());
         }
@@ -169,6 +175,7 @@ public class MTNoGraphAi implements Ai {
 
             double detectiveTotal = 0;
             ArrayList<Move> moveList = new ArrayList<>(moves);
+            //if the detectives average a distance of 2 from mrX, then he can use double moves
             for (Piece detective : gameState.getPlayers()) {
                 if (detective.isDetective()) {
                     detectiveTotal += dijkstraResult.get(gameState.getDetectiveLocation((Detective) detective).get());
@@ -187,14 +194,14 @@ public class MTNoGraphAi implements Ai {
                     stillContainsMrx = true;
                 }
             }
-            if (stillContainsMrx) {
+            if (stillContainsMrx) { //If there is still a mrX piece left in the players list, then this must be the first, therefore create the threads ofr each mrX move
+                                    // As the player list goes mrX, Red, green blue, white, yellow, mrX, Red, for 8 layers
                 for (Move move : moveList) {
-                    //if (tempPlayers.size() > 4) {
                     AiThread newThread = new AiThread(finalMap, move, gameState, tempPlayers, dijkstraResult, alpha, beta);
                     newThread.start();
-                    threads.add(newThread); // put outside the loop
-                    //}
+                    threads.add(newThread);
                 }
+                // ends the threads one by one, by iterating through the list and calling their .join() method
                 for (AiThread IndividualThread : threads) {
                     try{
                         IndividualThread.join();
@@ -207,7 +214,7 @@ public class MTNoGraphAi implements Ai {
                     bestVal = Math.max(IndividualThread.mapValue,bestVal);
                 }
             }
-            else {
+            else { //if this is the second mrX piece in the list of pieces
                 for (Move move : moveList) {
                     Board.GameState newState = gameState.advance(move);
                     int destination = move.accept(new Move.Visitor<Integer>() {
@@ -222,17 +229,16 @@ public class MTNoGraphAi implements Ai {
                         }
                     });
                     ArrayList<Move> newMoves = new ArrayList<>(newState.getAvailableMoves());
-                    //newMoves = Filter.duplicatePruning(newMoves);
                     Map<Integer, Double> tempDijkstraResult = Dijkstra.dijkstraFunction(newState.getSetup().graph, destination);
 
                     ArrayList<Move> newMoveList = new ArrayList<>();
-                    for (Piece individualDetectivePiece : gameState.getPlayers().asList()) {
+                    for (Piece individualDetectivePiece : gameState.getPlayers().asList()) { // gets rid of the irrelevant moves, more info for this in the docs (filter Irrelevant moves)
                         if (individualDetectivePiece.isDetective()) {
                             newMoveList.addAll(Filter.filterIrrelevantMoves(newMoves, individualDetectivePiece, dijkstraResult));
                         }
                     }
+
                     value = miniMax(tempDijkstraResult, tempPlayers, newState, Filter.duplicatePruning(newMoveList, tempPlayers.get(0)), alpha, beta, finalMap);
-                    //if (alpha == Double.NEGATIVE_INFINITY && beta == Double.POSITIVE_INFINITY) finalMap.put(value, move);
                     bestVal = Math.max(value, bestVal);
                     if (bestVal == Double.NEGATIVE_INFINITY){
                         bestVal = 0;
@@ -248,7 +254,7 @@ public class MTNoGraphAi implements Ai {
             bestVal = Double.POSITIVE_INFINITY;
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
-                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they dont have moves just return the distance to them.
+                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they don't have moves just return the distance to them.
             }
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
@@ -277,6 +283,7 @@ public class MTNoGraphAi implements Ai {
         return resultList;
     }
 
+    // stops mrX from going back to the same location he just came from, because moving more, reduces likelihood of being trapped
     public ArrayList<Move> noRepeatMoves(ArrayList<Move> moves){
         ArrayList<Move> returnMoves = new ArrayList<>();
         for (Move individualMove : moves){

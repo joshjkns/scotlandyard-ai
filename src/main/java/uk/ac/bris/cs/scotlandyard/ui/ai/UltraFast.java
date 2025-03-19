@@ -82,6 +82,7 @@ public class UltraFast implements Ai {
     @Nonnull
     @Override
     public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
+        // Creating a new factory to make a GameState with the required attributes, collected from the inputted board (Instead of downcasting)
         HashMap<ScotlandYard.Ticket, Integer> tempTicketMap = new HashMap<>();
         ArrayList<ScotlandYard.Ticket> tempTicketList = new ArrayList<>(Arrays.asList(ScotlandYard.Ticket.TAXI, ScotlandYard.Ticket.BUS, ScotlandYard.Ticket.UNDERGROUND, ScotlandYard.Ticket.DOUBLE, ScotlandYard.Ticket.SECRET));
         MyGameStateFactory factory = new MyGameStateFactory();
@@ -89,13 +90,15 @@ public class UltraFast implements Ai {
         Player mrX = null;
         int location = 0;
         for (Piece piece : board.getPlayers()) {
+            // stores each ticket type, and the amount of them (Per detective)
             for (ScotlandYard.Ticket ticket : tempTicketList) {
                 tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
             }
+            // creating a mrX player, using his information we get from the inputted board
             if (piece.isMrX()){
                 location = board.getAvailableMoves().asList().get(0).source();
                 mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
-            } else {
+            } else { // creating a list of detective players, using the information we get about them from the board
                 Piece.Detective newDetective = (Piece.Detective) piece;
                 Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
                 Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), detectiveLocation.get());
@@ -112,9 +115,10 @@ public class UltraFast implements Ai {
         for (Node child : root.children) {
             buildAllChildren(child, 1);
         }
-
+        // traverse tree, storing the largest value in the root node at the end
         traverseTree(root);
         Move bestMove = null;
+        // find the best move, which is stored by the node with the same value as the root node
         for (Node child : root.children) {
             if (child.value == root.value) {
                 bestMove = child.move;
@@ -123,6 +127,7 @@ public class UltraFast implements Ai {
         return bestMove;
     }
 
+    // creating the child nodes of the root
     public void initialiseRootWithMrX(Node root, Board board) {
         ArrayList<Move> filteredMoves = Filter.duplicatePruning(new ArrayList<>(board.getAvailableMoves().asList()), Piece.MrX.MRX);
         filteredMoves = Filter.doubleOrSingleFilter(filteredMoves,true);
@@ -133,6 +138,7 @@ public class UltraFast implements Ai {
         }
     }
 
+    //building all the subtree's from each of the root node's children
     public void buildAllChildren(Node node, int depth) {
         Board.GameState newState = node.state;
         if (!(node.state.getWinner().isEmpty())) return;
@@ -154,6 +160,7 @@ public class UltraFast implements Ai {
         }
     }
 
+    // recursively traverses the tree, from bottom to top, setting the value of each parent node, to its own value + Max of its children's values
     public double traverseTree(Node node) {
         double maxVal = Double.NEGATIVE_INFINITY;
         if (node.children.isEmpty()) {
@@ -168,20 +175,13 @@ public class UltraFast implements Ai {
         }
     }
 
-    public void printTree(Node node) {
-        if (!(node.children.isEmpty())) {
-            for (Node child : node.children) {
-                printTree(child);
-            }
-        }
-    }
-
+    // finds the combination of each of the detective's moves, to reduce the distance to MrX the most
     public ArrayList<Move> bestArrayOfMoves(Node node) {
         List<Set<Integer>> twoDList = twoDArrayOfMoves(node);
-        Set<List<Integer>> combinations = Sets.cartesianProduct(twoDList);
+        Set<List<Integer>> combinations = Sets.cartesianProduct(twoDList); // finds all combinations of the destinations, set of lists so no duplicate combinations, (det1 destination, det2 destination, det3 destination...)
         List<Integer> bestList = new ArrayList<>();
         double minVal = Double.POSITIVE_INFINITY;
-        Map<Integer,Double> dijkstraMap = dijkstraAll.get(node.location);
+        Map<Integer,Double> dijkstraMap = dijkstraAll.get(node.location); // dijkstra Map from mrX location
         for (List<Integer> list : combinations) {
             double listValueDijkstra = 0;
             double smallestVal = Double.POSITIVE_INFINITY;
@@ -190,15 +190,15 @@ public class UltraFast implements Ai {
                 if (temp < smallestVal) smallestVal = temp;
                 listValueDijkstra += temp;
             }
-            // double listValueDijkstra = list.stream().map(x -> (dijkstraAll.get(node.location)).get(x)).reduce(0.0, Double::sum);
+            // if sum of list is < temp value, and the list has no duplicates (no two locations can be occupied)
             if ((listValueDijkstra < minVal) && !hasDuplicates(list)) { // checking for duplicates
                 minVal = listValueDijkstra;
-//                node.value = smallestVal;
                 node.value = minVal;
                 bestList = list;
             }
         }
         ArrayList<Move> resultList = new ArrayList<>();
+        // converting list of destinations, into list of moves
         if (!(bestList.isEmpty())) {
             for (int i = 0; i < detectives.size(); i++) {
                 Move move = getMoveFromInteger(detectives.get(i), bestList.get(i), node.possibleMoves);
@@ -208,6 +208,7 @@ public class UltraFast implements Ai {
         return resultList;
     }
 
+    // returns true if any of the destinations are the same
     public static boolean hasDuplicates(List<Integer> list) {
         Set<Object> set = new HashSet<>();
         for (Integer val : list) {
@@ -218,6 +219,8 @@ public class UltraFast implements Ai {
         return false;
     }
 
+    // converts a list of moves, into a list of sets (because no duplicates) of a particular detectives destinations.
+    // therefore each set contains, all the places a detective could move to
     public List<Set<Integer>> twoDArrayOfMoves(Node node) {
         List<Set<Integer>> twoDList = new ArrayList<>(new HashSet<>());
         for (Piece piece : node.state.getPlayers()) {
@@ -236,6 +239,7 @@ public class UltraFast implements Ai {
         return twoDList;
     }
 
+    // turns a destination for a particular piece, into a move to that location
     public Move getMoveFromInteger(Piece mover, int destination, ArrayList<Move> movesList) {
         for (Move individualMove : movesList) {
             int moveDestination = ((Move.SingleMove) individualMove).destination;

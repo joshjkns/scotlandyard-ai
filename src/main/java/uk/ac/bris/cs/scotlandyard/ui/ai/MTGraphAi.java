@@ -30,22 +30,28 @@ public class MTGraphAi implements Ai {
 		ArrayList<Player> detectivesList = new ArrayList<>();
 		Player mrX = null;
 		int location = 0;
+		// creating temporary gamestate to allow advance() to be used.
+		// for all pieces
 		for (Piece piece : board.getPlayers()) {
 			for (Ticket ticket : tempTicketList) {
+				// put their tickets into a map with each ticket type and the number of them.
 				tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
 			}
-			if (piece.isMrX()){
+			if (piece.isMrX()){ // if piece is mrx, get his location and create his player
 				location = board.getAvailableMoves().asList().get(0).source();
 				mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
 			} else {
+				// cast piece to a detective and get their location before making their player.
 				Detective newDetective = (Detective) piece;
 				Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
 				Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), detectiveLocation.get());
 				detectivesList.add(newPlayer);
 			}
 		}
+		// get the gamestate from the list of players, mrx and the setup
 		Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
+		// lastlocation is set to location unless he has made a reveal move - tries to get away due to players naturally going there.
 		int lastLocation = location;
 		for (LogEntry entry : board.getMrXTravelLog()) {
 			if (entry.location().isPresent()) {
@@ -72,16 +78,17 @@ public class MTGraphAi implements Ai {
 		newMoves = noRepeatMoves(newMoves);
 		Map<Integer, Double> dijkstraResult = Dijkstra.dijkstraFunction(gameState.getSetup().graph, source);
 		ArrayListMultimap<Double, Board.GameState> finalMap = ArrayListMultimap.create();
+		//creating the physical miniMax tree
 		Graph.miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, graph, playerRemainingList);
-		// miniMaxGraph(gameState, newMoves, dijkstraResult, MrX.MRX, normGraph, playerRemainingList);
+		// running the miniMax traversal on the created graph
 		double bestVal = miniMax(gameState, graph, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, dijkstraResult, playerRemainingList, finalMap);
 
 		Move chosenMove = null;
 		double maxDistance = -1;
-		Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation);
-		for (Board.GameState tempState : finalMap.get(bestVal)) {
+		Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation); // dijkstra's called on prev location of mrX
+		for (Board.GameState tempState : finalMap.get(bestVal)) { // looping through the potential duplicate value moves
 			Move tempMove = graph.edgeValue(gameState, tempState).get();
-			if (maxDistance == -1) {
+			if (maxDistance == -1) { // assign chosenMove to tempMove to prevent null.
 				chosenMove = tempMove;
 			}
 			int destination = tempMove.accept(new Move.Visitor<>() {
@@ -95,12 +102,14 @@ public class MTGraphAi implements Ai {
 					return move.destination2;
 				}
 			});
+			// pick the move that is furthest away from the last location.
 			double distance = dijkstraLastLocation.get(destination);
 			if (distance > maxDistance) {
 				maxDistance = distance;
 				chosenMove = tempMove;
 			}
 		}
+
 		ArrayList<Move> printMap = new ArrayList<>();
 		for (Board.GameState individualGameState : finalMap.values()){
 			if (graph.edgeValue(gameState,individualGameState).isPresent()) {
@@ -115,6 +124,7 @@ public class MTGraphAi implements Ai {
 
 	}
 
+	//miniMax traversal of teh physical graph
 	public double miniMax(Board.GameState state, MutableValueGraph<Board.GameState, Move> graph, double alpha, double beta, Map<Integer, Double> dijkstraResult, ArrayList<Piece> playerRemainingList, ArrayListMultimap<Double, Board.GameState> finalMap) {
 		double bestVal = 0;
 		double value = 0;
@@ -163,7 +173,7 @@ public class MTGraphAi implements Ai {
 
 			}
 	
-			else {
+			else { //detective mover
 				bestVal = Double.POSITIVE_INFINITY;
 				for (Board.GameState child : graph.successors(state)) {
 					value = miniMax(child, graph, alpha, beta, dijkstraResult, tempRemainingList, finalMap);
@@ -183,6 +193,7 @@ public class MTGraphAi implements Ai {
 		return bestVal;
 	}
 
+	// stops mrX from going back to the same location he just came from, because moving more, reduces likelihood of being trapped
 	public ArrayList<Move> noRepeatMoves(ArrayList<Move> moves){
 		ArrayList<Move> returnMoves = new ArrayList<>();
 		for (Move individualMove : moves){

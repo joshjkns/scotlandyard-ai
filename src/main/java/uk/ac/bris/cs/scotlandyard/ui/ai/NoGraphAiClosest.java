@@ -29,22 +29,29 @@ public class NoGraphAiClosest implements Ai {
         ArrayList<Player> detectivesList = new ArrayList<>();
         Player mrX = null;
         int location = 0;
+
+        // creating temporary gamestate to allow advance() to be used.
+        // for all pieces
         for (Piece piece : board.getPlayers()) {
             for (Ticket ticket : tempTicketList) {
+                // put their tickets into a map with each ticket type and the number of them.
                 tempTicketMap.put(ticket, board.getPlayerTickets(piece).get().getCount(ticket));
             }
-            if (piece.isMrX()){
+            if (piece.isMrX()){ // if piece is mrx, get his location and create his player
                 location = board.getAvailableMoves().asList().get(0).source();
                 mrX = new Player(piece, ImmutableMap.copyOf(tempTicketMap), location);
             } else {
+                // cast piece to a detective and get their location before making their player.
                 Detective newDetective = (Detective) piece;
                 Optional<Integer> detectiveLocation = board.getDetectiveLocation(newDetective);
                 Player newPlayer = new Player(piece, ImmutableMap.copyOf(tempTicketMap), detectiveLocation.get());
                 detectivesList.add(newPlayer);
             }
         }
+        // get the gamestate from the list of players, mrx and the setup
         Board.GameState gameState = factory.build(board.getSetup(), mrX, ImmutableList.copyOf(detectivesList));
 
+        // lastlocation is set to location unless he has made a reveal move - tries to get away due to players naturally going there.
         int lastLocation = location;
         for (LogEntry entry : board.getMrXTravelLog()) {
             if (entry.location().isPresent()) {
@@ -64,9 +71,9 @@ public class NoGraphAiClosest implements Ai {
 
         Move chosenMove = null;
         double maxDistance = -1;
-        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation);
-        for (Move tempMove : finalMap.get(bestVal)) {
-            if (maxDistance == -1) {
+        Map<Integer, Double> dijkstraLastLocation = Dijkstra.dijkstraFunction(gameState.getSetup().graph, lastLocation); // dijkstra's called on prev location of mrX
+        for (Move tempMove : finalMap.get(bestVal)) { // looping through the potential duplicate value moves
+            if (maxDistance == -1) { // assign chosenMove to tempMove to prevent null.
                 chosenMove = tempMove;
             }
             int destination = tempMove.accept(new Move.Visitor<>() {
@@ -80,6 +87,7 @@ public class NoGraphAiClosest implements Ai {
                     return move.destination2;
                 }
             });
+            // pick the move that is furthest away from the last location.
             double distance = dijkstraLastLocation.get(destination);
             if (distance > maxDistance) {
                 maxDistance = distance;
@@ -112,6 +120,7 @@ public class NoGraphAiClosest implements Ai {
 
             double detectiveTotal = Double.POSITIVE_INFINITY;
             ArrayList<Move> moveList = new ArrayList<>(moves);
+            //if the detectives average a distance of 2 from mrX, then he can use double moves
             for (Piece detective : gameState.getPlayers()) {
                 if (detective.isDetective()) {
                     detectiveTotal = Math.min(detectiveTotal, dijkstraResult.get(gameState.getDetectiveLocation((Detective) detective).get()));
@@ -166,7 +175,7 @@ public class NoGraphAiClosest implements Ai {
             bestVal = Double.POSITIVE_INFINITY;
             ArrayList<Move> moveList = getPlayerMoves(moves, mover);
             if (moveList.isEmpty()) {
-                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they dont have moves just return the distance to them.
+                return dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get());// if they don't have moves just return the distance to them.
             }
             for (Move move : moveList) {
                 Board.GameState newState = gameState.advance(move);
@@ -182,7 +191,7 @@ public class NoGraphAiClosest implements Ai {
             if (tempPlayers.size() == 1) {
                 tempPlayers.remove(0);
             }
-            return Math.min(bestVal,dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get()));
+            return Math.min(bestVal,dijkstraResult.get(gameState.getDetectiveLocation((Detective) mover).get())); // Min of all 'children' and the 'parent' values, is returned
         }
     }
 
@@ -196,6 +205,7 @@ public class NoGraphAiClosest implements Ai {
         return resultList;
     }
 
+    // stops mrX from going back to the same location he just came from, because moving more, reduces likelihood of being trapped
     public ArrayList<Move> noRepeatMoves(ArrayList<Move> moves){
         ArrayList<Move> returnMoves = new ArrayList<>();
         for (Move individualMove : moves){
