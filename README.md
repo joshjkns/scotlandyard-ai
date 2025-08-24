@@ -13,7 +13,7 @@ Collection of AI algorithms used within scotland yard, can be used for both MrX,
 
 ## Project Documentation
 
-![Documentation](https://docs.google.com/document/d/10P0K3mW9pUqetGPaQNBEHKmPo4Igr67vwqyL1C7Fguk/edit?usp=sharing)
+[Project Documentation](https://docs.google.com/document/d/10P0K3mW9pUqetGPaQNBEHKmPo4Igr67vwqyL1C7Fguk/edit?usp=sharing)
 
 ## Prerequisites
 
