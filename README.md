@@ -1,8 +1,16 @@
 # ScotlandYard AI
 
-Collection of AI algorithms used within scotland yard, can be used for both MrX, and Detectives.
+Collection of AI algorithms used within Scotland Yard, can be used for both MrX, and Detectives.
 
 <img src="ScotImg.png">
+
+<table>
+  <th valign="top" colspan=2>Created by: </th>
+  <tr align="center" valign="top">
+    <td width="50%"><a href="https://github.com/jwdlb"><img src="https://avatars.githubusercontent.com/jwdlb" width=100><br><b>Jack Dempsey</b></a></td>
+    <td width="50%"><a href="https://github.com/joshjkns"><img src="https://avatars.githubusercontent.com/joshjkns" width=100><br><b>Josh Jenkins</b></a></td>
+  </tr>
+</table>
 
 ## Features
 
@@ -22,7 +30,7 @@ Collection of AI algorithms used within scotland yard, can be used for both MrX,
 ## Impovements
 Further improvements that can / will be made include:
 - Benchmarking AI's, to provide definitive results.
-- Utilising parralel processing on the GPU, using libaries such as Aparapi.
+- Utilising parallel processing on the GPU, using libaries such as Aparapi.
 
 
 
